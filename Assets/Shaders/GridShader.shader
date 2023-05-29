@@ -90,15 +90,15 @@ Shader "Custom/GridShader"
 					_Color.a = 0.5f;
 				}
 				if (content == -1) { //only air
-					_Color.r = 0.0f;
+					_Color.r = cell.temperature;
 					_Color.g = 0.0f; //content is the index of the particle that the cell is occupied by
-					_Color.b = cell.temperature;
+					_Color.b = 0.0f;
 					_Color.a = 0.5f;
 				}
 				if (content >= 0) {
-					_Color.r = cell.density;
-					_Color.g = 1; //content is the index of the particle that the cell is occupied by
-					_Color.b = cell.temperature;
+					_Color.r = cell.temperature;
+					_Color.g = 0; //content is the index of the particle that the cell is occupied by
+					_Color.b = cell.density;
 					_Color.a = 0.5f;
 				}
 			}
