@@ -107,8 +107,8 @@ void PopulateGrid(uint3 id : SV_DispatchThreadID)
     float mapY = ((-cell.WSposition.z + planeSideSize / 2.0f - planeCenter.z) / (float) planeSideSize);
     int2 coords = int2(round(mapX * texResolution), round(mapY * texResolution));
     //int2 coords = int2(round(id.x / (float) texResolution), round(id.z / (float) texResolution));
-    float groundLevel = GroundHeightMap[coords] + planeCenter.y;
-    float snowLevel = groundLevel + SnowHeightMap[coords] /** snowHeightFactor*/;
+    float groundLevel = GroundHeightMap[coords].x + planeCenter.y;
+    float snowLevel = groundLevel + SnowHeightMap[coords].x /** snowHeightFactor*/;
     
     cell.mass = cell.density * V_cell;
     
@@ -120,7 +120,7 @@ void PopulateGrid(uint3 id : SV_DispatchThreadID)
     }
     else if (cell.WSposition.y <= snowLevel)
     {
-        cell.isOccupied = -1; //below snow surface but above ground - inside snow pack
+        cell.isOccupied = 1; //below snow surface but above ground - inside snow pack
         //float snowHeight = snowLevel - groundLevel;
         //dissipate all forces
             //cell.pressure = (snowLevel - cell.WSposition.y) / snowHeight; //the deeper the more pressure

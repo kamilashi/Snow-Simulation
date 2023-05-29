@@ -208,7 +208,8 @@ public class Manager : MonoBehaviour
 
         shader.GetKernelThreadGroupSizes(kernelHandleHeight, out heightThreadGroupSizeX, out heightThreadGroupSizeY, out _);
         shader.Dispatch(kernelHandleHeight, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX), Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY), 1);
-       
+
+        shader.GetKernelThreadGroupSizes(kernelInitHeight, out heightThreadGroupSizeX, out heightThreadGroupSizeY, out _);
         shader.Dispatch(kernelInitHeight, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX), Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY), 1);
 
     }

@@ -49,15 +49,14 @@ Shader "Custom/GridShader"
 		{
 			int3 gridIndex;
 			float3 WSposition;
-			int isOccupied; //TO-DO - enum here
-
-			float mass;
-			float density;
 			float3 force;
+			float density;
 			float hardness;
 			float temperature;
 			float grainSize;
+			float mass;
 			int index;
+			int isOccupied; //TO-DO - enum here
 		};
 
 		StructuredBuffer<Cell> cellGridBuffer;
@@ -85,12 +84,14 @@ Shader "Custom/GridShader"
 				int content = cell.isOccupied;
 
 				if (content == -2) {
-					_Color.rgb = (0, 0, 0); //bedrock
+					_Color.r = 0.0f;
+					_Color.g = 0.0f; //content is the index of the particle that the cell is occupied by
+					_Color.b = 0.0f;
 					_Color.a = 0.5f;
 				}
 				if (content == -1) { //only air
-					_Color.r = 0;
-					_Color.g = 0; //content is the index of the particle that the cell is occupied by
+					_Color.r = 0.0f;
+					_Color.g = 0.0f; //content is the index of the particle that the cell is occupied by
 					_Color.b = cell.temperature;
 					_Color.a = 0.5f;
 				}
