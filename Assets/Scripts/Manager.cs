@@ -39,26 +39,27 @@ public class Manager : MonoBehaviour
     {
         public Vector3 gridIndex;
         public Vector3 WSposition;
-        public Vector3 velocity;
-        public Vector3 acceleration;
+        public Vector3 force;
         public float density;
-        public int isOccupied; //TO-DO - enum here
-        public float pressure;
-        public float humidity;
+        public float hardness;
+        public float temperature;
+        public float grainSize;
+        public float mass;
         public int index;
+        public int isOccupied; //TO-DO - enum here
 
         public Cell(int gridX, int gridY, int gridZ, int cubeIndex)
         {
             gridIndex = new Vector3(gridX, gridY, gridZ);
-            //WSposition = new Vector3((float) gridX, (float)gridY, (float)gridZ);
             WSposition =  Vector3.zero;
-            velocity = Vector3.zero;
-            acceleration = new Vector3(0.0f, -9.8f, 0.0f);
-            density = 0.0f;//simulating polar, 50 kg/m3 at top (fresh), 200 kg/m3 at bottom (compressed)
-            isOccupied = 0;
-            pressure = 0.0f;
-            humidity = 0.0f;
+            force = Vector3.zero;
+            density = 0.2f;/// 1000000.0f;
+            hardness = 50.0f;
+            temperature = -3.0f;
+            mass = 0.0f;
+            grainSize = 0.2f;
             index = cubeIndex;
+            isOccupied = 0;
         }
     };
     struct Collider
@@ -91,7 +92,7 @@ public class Manager : MonoBehaviour
     public float particleSize = 1.0f; // radius
     private int particleCount; // depends on snow height, codependent with particle size
 
-    int SIZE_CELL = 5 * sizeof(int) + 12 * sizeof(float);
+    int SIZE_CELL = 5 * sizeof(int) + 11 * sizeof(float);
     int SIZE_PARTICLE = 7 * sizeof(float);
     Cell[] cellGridArray;
     Particle[] particleArray;
@@ -105,10 +106,7 @@ public class Manager : MonoBehaviour
     private ComputeBuffer particleArgsBuffer;
     public Mesh cubeMesh
     {
-        //get
-        //{
-        //    return showGrid ? CjLib.PrimitiveMeshFactory.BoxWireframe() : CjLib.PrimitiveMeshFactory.BoxFlatShaded();
-        //}
+     
         get
         {
            return CjLib.PrimitiveMeshFactory.BoxFlatShaded();
@@ -138,12 +136,12 @@ public class Manager : MonoBehaviour
         GenerateHeightMap();
         InitDefaultArguments();
         InitGrid();
-        InitSnowParticles();
+        //InitSnowParticles();
     }
 
     Renderer rend;
     RenderTexture groundHeightMapTexture;
-    RenderTexture snowInputHeightMapTexture;
+    //RenderTexture snowInputHeightMapTexture;
     RenderTexture snowHeightMapTexture;
     RenderTexture debugText;
     private void CreateTextures()
@@ -152,9 +150,9 @@ public class Manager : MonoBehaviour
             groundHeightMapTexture.enableRandomWrite = true;
             groundHeightMapTexture.Create();
 
-            snowInputHeightMapTexture = new RenderTexture(texResolution, texResolution, 0);
-            snowInputHeightMapTexture.enableRandomWrite = true;
-            snowInputHeightMapTexture.Create();
+            //snowInputHeightMapTexture = new RenderTexture(texResolution, texResolution, 0);
+            //snowInputHeightMapTexture.enableRandomWrite = true;
+            //snowInputHeightMapTexture.Create();
 
             snowHeightMapTexture = new RenderTexture(texResolution, texResolution, 0);
             snowHeightMapTexture.enableRandomWrite = true;
@@ -171,17 +169,20 @@ public class Manager : MonoBehaviour
     uint heightThreadGroupSizeX;
     uint heightThreadGroupSizeY;
     int kernelHandleHeight;
+    int kernelInitHeight;
     private void GenerateHeightMap()
     {
         kernelHandleHeight = shader.FindKernel("GenerateHeight");
 
-        int kernelInitHeight = shader.FindKernel("InitSnowHeight");
+        kernelInitHeight = shader.FindKernel("InitSnowHeight");
 
         shader.SetInt("texResolution", texResolution);
         shader.SetTexture(kernelHandleHeight, "GroundHeightMap", groundHeightMapTexture);
         //shader.SetTexture(kernelHandleHeight, "SnowInputHeightMap", snowInputHeightMapTexture);
-        shader.SetTexture(kernelInitHeight, "SnowHeightMap", snowHeightMapTexture);
         shader.SetTexture(kernelHandleHeight, "Debug", debugText);
+
+
+        shader.SetTexture(kernelInitHeight, "SnowHeightMap", snowHeightMapTexture);
 
         shader.SetFloat("snowHeightFactor", snowHeightScale); //important for reconstruction
         groundMaterial.SetTexture("_GroundHeightMap", groundHeightMapTexture);
@@ -208,7 +209,6 @@ public class Manager : MonoBehaviour
         shader.GetKernelThreadGroupSizes(kernelHandleHeight, out heightThreadGroupSizeX, out heightThreadGroupSizeY, out _);
         shader.Dispatch(kernelHandleHeight, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX), Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY), 1);
        
-        shader.GetKernelThreadGroupSizes(kernelInitHeight, out heightThreadGroupSizeX, out heightThreadGroupSizeY, out _);
         shader.Dispatch(kernelInitHeight, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX), Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY), 1);
 
     }
@@ -250,6 +250,7 @@ public class Manager : MonoBehaviour
 
         kernePopulateGrid = shader.FindKernel("PopulateGrid");
         shader.SetBuffer(kernePopulateGrid, "cellGridBuffer", cellGridBuffer);
+
         int[] gridDimensions = new int[] { gridWidth, gridHeight, gridDepth };
         Debug.Log(gridDimensions.ToString());
         shader.SetInts( "gridDimensions", gridDimensions); //in cell numbers! 
@@ -262,8 +263,6 @@ public class Manager : MonoBehaviour
         shader.SetTexture(kernePopulateGrid, "SnowHeightMap", snowHeightMapTexture);
         shader.SetTexture(kernePopulateGrid, "Debug", debugText);
 
-        Vector3Int groupSize = new Vector3Int(gridWidth, gridHeight, gridDepth);
-        //shader.Dispatch(kernePopulateGrid, groupSize.x, groupSize.y, groupSize.z);
         
         shader.GetKernelThreadGroupSizes(kernePopulateGrid, out gridThreadGroupSizeX, out gridTthreadGroupSizeY, out gridThreadGroupSizeZ);
         shader.Dispatch(kernePopulateGrid, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX), 
@@ -271,7 +270,6 @@ public class Manager : MonoBehaviour
                                            Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
 
         GridMaterial.SetBuffer("cellGridBuffer", cellGridBuffer);
-       // GridMaterial.SetTexture("_HeightMap", groundHeightMapTexture);
         GridMaterial.SetFloat("_CellSize", cellSize);
 
         gridArgs = new uint[] { cubeMesh.GetIndexCount(0), (uint)cellCount, 0, 0, 0 };
@@ -353,15 +351,16 @@ public class Manager : MonoBehaviour
         shader.SetInts("particlesPerAxis", parPerAxis); //in cell numbers! 
         shader.SetTexture(kernelInitSnow, "GroundHeightMap", groundHeightMapTexture);
         shader.SetTexture(kernelInitSnow, "SnowHeightMap", snowHeightMapTexture);
-   
-        // no particles for now
-        //shader.GetKernelThreadGroupSizes(kernelInitSnow, out snowThreadGroupSizeX, out snowTthreadGroupSizeY, out snowThreadGroupSizeZ);
-        //shader.Dispatch(kernelInitSnow, Mathf.CeilToInt((float)particlesPerAxis.x / (float)snowThreadGroupSizeX),
-        //                                   Mathf.CeilToInt((float)particlesPerAxis.y / (float)snowTthreadGroupSizeY),
-        //                                   Mathf.CeilToInt((float)particlesPerAxis.z / (float)snowThreadGroupSizeZ));
-        //shader.Dispatch(kernelSetGridVelocity, 1, 1, 1);
 
-        
+        //no particles for now
+
+       shader.GetKernelThreadGroupSizes(kernelInitSnow, out snowThreadGroupSizeX, out snowTthreadGroupSizeY, out snowThreadGroupSizeZ);
+       shader.Dispatch(kernelInitSnow, Mathf.CeilToInt((float)particlesPerAxis.x / (float)snowThreadGroupSizeX),
+                                          Mathf.CeilToInt((float)particlesPerAxis.y / (float)snowTthreadGroupSizeY),
+                                          Mathf.CeilToInt((float)particlesPerAxis.z / (float)snowThreadGroupSizeZ));
+        shader.Dispatch(kernelSetGridVelocity, 1, 1, 1);
+
+
         particleMaterial.SetBuffer("particleBuffer", particleBuffer);
 
         particleArgs = new uint[] { particleMesh.GetIndexCount(0), (uint)particleCount, 0, 0, 0 };
@@ -381,6 +380,7 @@ public class Manager : MonoBehaviour
         shader.SetFloat("timeScale", timeScale);
         shader.SetFloat("simulationSpeed", simulationSpeed);
 
+        //shader.GetKernelThreadGroupSizes(kernelHandleHeight, out heightThreadGroupSizeX, out heightThreadGroupSizeY, out _);
         shader.Dispatch(kernelHandleHeight, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX), Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY), 1);
         // clears grid
         shader.Dispatch(kernePopulateGrid, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),
@@ -406,16 +406,16 @@ public class Manager : MonoBehaviour
         //                                       Mathf.CeilToInt((float)gridHeight / (float)gridTthreadGroupSizeY),
         //                                       Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
 
-        // DebugPrint();
+        //DebugPrint();
         if (showGrid)
         {
             Graphics.DrawMeshInstancedIndirect(cubeMesh, 0, GridMaterial, cellBounds, gridArgsBuffer);
         }
 
-        if(showSnowParticles)
-        {
-            Graphics.DrawMeshInstancedIndirect(particleMesh, 0, particleMaterial, particleBounds, particleArgsBuffer);
-        }
+        //if(showSnowParticles)
+        //{
+        //    Graphics.DrawMeshInstancedIndirect(particleMesh, 0, particleMaterial, particleBounds, particleArgsBuffer);
+        //}
     }
 
     void OnDestroy()
@@ -429,14 +429,14 @@ public class Manager : MonoBehaviour
             gridArgsBuffer.Release();
         }
 
-        particleBuffer.Release();
+        //particleBuffer.Release();
 
-        if (particleArgsBuffer != null)
-        {
+        //if (particleArgsBuffer != null)
+        //{
 
-            //Debug.Log("args buffer released " + argsBuffer);
-            particleArgsBuffer.Release();
-        }
+        //    //Debug.Log("args buffer released " + argsBuffer);
+        //    particleArgsBuffer.Release();
+        //}
     }
 
     void DebugPrint()

@@ -3,7 +3,7 @@ Shader "Custom/GridShader"
 
 	Properties{
 		_Color("Color", Color) = (0,0,0,1)
-		[Toggle(SHOW_VELOCITY)] _Show_Velocity("Show Velocity", Float) = 0
+		[Toggle(SHOW_FORCE)] _Show_Force("Show Force", Float) = 0
 		[Toggle(SHOW_CNOWPARAMS)] _Show_SnowParams("Show Snow Paramt", Float) = 0
 		//_HeightMap("Albedo (RGB)", 2D) = "white" {}
 	}
@@ -26,7 +26,7 @@ Shader "Custom/GridShader"
 
 		fixed4 _Color;
 		float3 _Position;
-		float _Show_Velocity;
+		float _Show_Force;
 		float _Show_SnowParams;
 		float _CellSize;
 		float _Metallic;
@@ -49,12 +49,14 @@ Shader "Custom/GridShader"
 		{
 			int3 gridIndex;
 			float3 WSposition;
-			float3 velocity;
-			float3 acceleration;
 			int isOccupied; //TO-DO - enum here
-			float pressure;
+
+			float mass;
 			float density;
-			float humidity;
+			float3 force;
+			float hardness;
+			float temperature;
+			float grainSize;
 			int index;
 		};
 
@@ -89,24 +91,24 @@ Shader "Custom/GridShader"
 				if (content == -1) { //only air
 					_Color.r = 0;
 					_Color.g = 0; //content is the index of the particle that the cell is occupied by
-					_Color.b = cell.humidity;
+					_Color.b = cell.temperature;
 					_Color.a = 0.5f;
 				}
 				if (content >= 0) {
-					_Color.r = cell.pressure;
+					_Color.r = cell.density;
 					_Color.g = 1; //content is the index of the particle that the cell is occupied by
-					_Color.b = cell.humidity;
+					_Color.b = cell.temperature;
 					_Color.a = 0.5f;
 				}
 			}
 
-			if (_Show_Velocity) {
-				_Color.r = (cell.velocity.x);
-				_Color.g = (cell.velocity.y);
-				_Color.b = (cell.velocity.z);
+			if (_Show_Force) {
+				_Color.r = (cell.force.x);
+				_Color.g = (cell.force.y);
+				_Color.b = (cell.force.z);
 
 				//_Color.a = abs((cell.velocity.y + cell.velocity.x + cell.velocity.z)/3.0f);
-				_Color.a = length(cell.velocity);
+				_Color.a = length(cell.force);
 				//_Metallic = abs(cell.velocity);
 			}
 			
