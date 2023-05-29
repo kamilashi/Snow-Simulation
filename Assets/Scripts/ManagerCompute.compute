@@ -183,7 +183,6 @@ void ComputeForces(uint3 id : SV_DispatchThreadID)
         while  (upperCell.isOccupied > -1)
         {
             m_total += upperCell.mass;
-           // m_total += 1;
             upPos = upperCell.WSposition + float3(0, cellSize, 0);
             if (!isWithinGrid(upPos))
             {
