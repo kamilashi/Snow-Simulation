@@ -1,6 +1,7 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel PopulateGrid
 #pragma kernel GenerateHeight
+#pragma kernel InitSnowHeight
 #pragma kernel CollisionDetection
 #pragma kernel InitSnowParticles
 #pragma kernel SetGridVelocity
@@ -46,7 +47,9 @@ struct Collider
 
 RWStructuredBuffer<Particle> particleBuffer;
 RWStructuredBuffer<Cell> cellGridBuffer;
+
 shared RWTexture2D<float4> GroundHeightMap;
+shared RWTexture2D<float4> SnowInputHeightMap;
 //since you can't store values > 1 in a texture, the normalized height will be calculated here based on light exposure, when multiplied by a scaling snowHeightMaxFactor in the vertex shader, max value is controlled my a script
 shared RWTexture2D<float4> SnowHeightMap;
 shared RWTexture2D<float4> Debug;
@@ -87,7 +90,7 @@ void PopulateGrid(uint3 id : SV_DispatchThreadID)
     int2 coords = int2(round(mapX * texResolution), round(mapY * texResolution));
     //int2 coords = int2(round(id.x / (float) texResolution), round(id.z / (float) texResolution));
     float groundLevel = GroundHeightMap[coords] + planeCenter.y;
-    float snowLevel = groundLevel + SnowHeightMap[coords] * snowHeightFactor;
+    float snowLevel = groundLevel + SnowHeightMap[coords] /** snowHeightFactor*/;
     if (cell.WSposition.y <= groundLevel)
     {
         cell.isOccupied = -2; //below ground
@@ -110,7 +113,7 @@ void PopulateGrid(uint3 id : SV_DispatchThreadID)
     {
         cell.isOccupied = -1; //free
         cell.pressure = 0; //air
-        cell.humidity = (0.01* time * simulationSpeed); //some precipitation constant (?)
+        cell.humidity = (0.01 * time * simulationSpeed); //some precipitation constant (?)
     }
         
         cellGridBuffer[index] = cell;
@@ -129,8 +132,13 @@ void GenerateHeight(uint3 id : SV_DispatchThreadID)
     float heightMap = SimpleNoise(uv - uvOffset, 5) * 2;
     GroundHeightMap[id.xy] = float4(heightMap.xxx, 1);
     //TO-DO: move snow height calculation to a separate function
-    SnowHeightMap[id.xy] = 0.5;
     Debug[id.xy] = float4(heightMap.xxx, 1);
+}
+
+[numthreads(32, 32, 1)]
+void InitSnowHeight(uint3 id : SV_DispatchThreadID)
+{
+    SnowHeightMap[id.xy] = 10.0;
 }
 
 [numthreads(10, 10, 10)]
