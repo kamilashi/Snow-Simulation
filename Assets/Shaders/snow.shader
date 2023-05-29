@@ -45,7 +45,7 @@ Shader "Unlit/snow"
                 v2f o;
                 float snowHeight = tex2Dlod(_SnowHeightMap, float4(v.uv, 0.0, 0.0)).x;
                 float groundHeight = tex2Dlod(_GroundHeightMap, float4(v.uv, 0.0, 0.0)).x;
-                v.position.y += groundHeight + snowHeight /**_SnowFactorMax*/;
+                v.position.y += groundHeight + snowHeight *_SnowFactorMax;
                 o.position = UnityObjectToClipPos(v.position);
                 o.uv = v.uv;
                 return o;

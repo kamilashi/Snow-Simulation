@@ -53,7 +53,7 @@ public class Manager : MonoBehaviour
             gridIndex = new Vector3(gridX, gridY, gridZ);
             WSposition =  Vector3.zero;
             force = Vector3.zero;
-            density = 0.2f;/// 1000000.0f;
+            density = 0.2f/ 1000000.0f;
             hardness = 50000.0f;
             temperature = -3.0f;
             mass = 0.0f;
@@ -124,6 +124,7 @@ public class Manager : MonoBehaviour
 
     Bounds cellBounds;
     private int kernePopulateGrid;
+    private int kernelComputeForces;
 
     uint gridThreadGroupSizeX;
     uint gridTthreadGroupSizeY;
@@ -216,7 +217,6 @@ public class Manager : MonoBehaviour
 
     private void InitDefaultArguments()
     {
-
         texResolution = 1024;
         gridWidth = 50;
         gridHeight = 50;
@@ -256,6 +256,7 @@ public class Manager : MonoBehaviour
         Debug.Log(gridDimensions.ToString());
         shader.SetInts( "gridDimensions", gridDimensions); //in cell numbers! 
         shader.SetFloat("cellSize", cellSize);
+        shader.SetFloat("V_cell", cellSize* cellSize* cellSize);
         float[] gridC = new float[] { gridCenter.x, gridCenter.y, gridCenter.z };
        // Debug.Log("gridC " + gridC[1]);
         shader.SetFloats("gridCenter", gridC);
@@ -278,6 +279,10 @@ public class Manager : MonoBehaviour
         gridArgsBuffer.SetData(gridArgs);
         cellBounds = new Bounds(Vector3.zero, new Vector3(30, 30, 30)); //place holder
 
+        kernelComputeForces = shader.FindKernel("ComputeForces");
+        shader.SetBuffer(kernelComputeForces, "cellGridBuffer", cellGridBuffer);
+        shader.SetTexture(kernelComputeForces, "GroundHeightMap", groundHeightMapTexture);
+        shader.SetTexture(kernelComputeForces, "SnowHeightMap", snowHeightMapTexture);
     }
     Bounds particleBounds;
     private int kernelInitSnow;
@@ -385,6 +390,10 @@ public class Manager : MonoBehaviour
         shader.Dispatch(kernelHandleHeight, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX), Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY), 1);
         // clears grid
         shader.Dispatch(kernePopulateGrid, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),
+                                              Mathf.CeilToInt((float)gridHeight / (float)gridTthreadGroupSizeY),
+                                              Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
+
+        shader.Dispatch(kernelComputeForces, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),
                                               Mathf.CeilToInt((float)gridHeight / (float)gridTthreadGroupSizeY),
                                               Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
 

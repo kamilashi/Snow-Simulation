@@ -95,7 +95,7 @@ Shader "Custom/GridShader"
 					_Color.b = 0.0f;
 					_Color.a = 0.5f;
 				}
-				if (content >= 0) {
+				if (content > -1) {
 					_Color.r = cell.temperature;
 					_Color.g = 0; //content is the index of the particle that the cell is occupied by
 					_Color.b = cell.density;
@@ -104,12 +104,13 @@ Shader "Custom/GridShader"
 			}
 
 			if (_Show_Force) {
-				_Color.r = (cell.force.x);
-				_Color.g = (cell.force.y);
-				_Color.b = (cell.force.z);
+				float3 force = (cell.force * 1000000.0f);
+				_Color.r = (force.x);
+				_Color.g = (force.y);
+				_Color.b = (force.z);
 
-				//_Color.a = abs((cell.velocity.y + cell.velocity.x + cell.velocity.z)/3.0f);
-				_Color.a = length(cell.force);
+				//_Color.a = abs((abs(force.y) + abs(force.x) + abs(force.z))/3.0f);
+				_Color.a = length(force);
 				//_Metallic = abs(cell.velocity);
 			}
 			

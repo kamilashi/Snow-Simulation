@@ -339,7 +339,7 @@ MonoBehaviour:
   showSnowParticles: 1
   toggle: 0
   gridCenter: {x: 0, y: 0, z: 0}
-  cellSize: 0.1
+  cellSize: 0.2
   timeScale: 0
   simulationSpeed: 0.5
   snowHeightScale: 2
