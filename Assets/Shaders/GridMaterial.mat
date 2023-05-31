@@ -11,6 +11,7 @@ Material:
   m_Shader: {fileID: 4800000, guid: 7bed9336c28a00c42870d1d5cd6d9bf0, type: 3}
   m_ValidKeywords: []
   m_InvalidKeywords:
+  - SHOW_CNOWPARAMS
   - SHOW_FORCE
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 1
@@ -75,7 +76,7 @@ Material:
     - _OcclusionStrength: 1
     - _Parallax: 0.02
     - _Show_Force: 1
-    - _Show_SnowParams: 0
+    - _Show_SnowParams: 1
     - _Show_Velocity: 0
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1

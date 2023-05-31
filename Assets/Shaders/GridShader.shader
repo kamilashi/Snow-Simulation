@@ -79,39 +79,36 @@ Shader "Custom/GridShader"
 		#ifdef UNITY_PROCEDURAL_INSTANCING_ENABLED
 			Cell cell = cellGridBuffer[unity_InstanceID];
 			_Position = cell.WSposition;
+			int content = cell.isOccupied;
 			if(_Show_SnowParams){
-
-				int content = cell.isOccupied;
 
 				if (content == -2) {
 					_Color.r = 0.0f;
 					_Color.g = 0.0f; //content is the index of the particle that the cell is occupied by
 					_Color.b = 0.0f;
-					_Color.a = 0.5f;
+					_Color.a = 0.0f;
 				}
 				if (content == -1) { //only air
-					_Color.r = cell.temperature;
+					_Color.r = 0.0f;
 					_Color.g = 0.0f; //content is the index of the particle that the cell is occupied by
 					_Color.b = 0.0f;
-					_Color.a = 0.5f;
+					_Color.a = 0.0f;
 				}
 				if (content > -1) {
-					_Color.r = cell.temperature;
-					_Color.g = 0; //content is the index of the particle that the cell is occupied by
+					_Color.r = 0.0f; //cell.mass;
+					_Color.g = 0.0f; //content is the index of the particle that the cell is occupied by
 					_Color.b = cell.density;
-					_Color.a = 0.5f;
+					_Color.a = 1.0f;
 				}
 			}
 
-			if (_Show_Force) {
-				float3 force = (cell.force * 1000000.0f);
-				_Color.r = (force.x);
-				_Color.g = clamp(force.y, -1.0f, 1.0f);
-				_Color.b = (force.z);
+			if ((_Show_Force)) {
+				float3 force = (cell.force );
+				_Color.r = force.x;
+				_Color.g = force.y;
+				_Color.b = force.z;
 
-				//_Color.a = abs((abs(force.y) + abs(force.x) + abs(force.z))/3.0f);
-				_Color.a = length(force);
-				//_Metallic = abs(cell.velocity);
+				_Color.a = 1.0f * saturate(length(force));
 			}
 			
 		#endif
