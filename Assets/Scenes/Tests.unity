@@ -265,7 +265,7 @@ MeshRenderer:
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
+  m_DynamicOccludee: 0
   m_StaticShadowCaster: 0
   m_MotionVectors: 1
   m_LightProbeUsage: 1
@@ -275,7 +275,6 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: dc9a592f2605d0c4588833d419cc81df, type: 2}
   - {fileID: 2100000, guid: 1a7c1f1c2f1555e409f74a848abbac77, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
@@ -336,13 +335,13 @@ MonoBehaviour:
   shader: {fileID: 7200000, guid: f4bc48209859be14ba5ee14a11e97fad, type: 3}
   texResolution: 1024
   showGrid: 1
-  showSnowParticles: 1
+  showSnowParticles: 0
   toggle: 0
   gridCenter: {x: 0, y: 0, z: 0}
   cellSize: 0.2
   timeScale: 0
   simulationSpeed: 0.5
-  snowHeightScale: 2
+  snowHeightScale: 4.04
   groundMaterial: {fileID: 2100000, guid: dc9a592f2605d0c4588833d419cc81df, type: 2}
   snowMaterial: {fileID: 2100000, guid: 1a7c1f1c2f1555e409f74a848abbac77, type: 2}
   debugMaterial: {fileID: 2100000, guid: bf39f3fa15e6ea34fae8093b5e8f202c, type: 2}
@@ -539,8 +538,6 @@ GameObject:
   - component: {fileID: 2010433696}
   - component: {fileID: 2010433695}
   - component: {fileID: 2010433694}
-  - component: {fileID: 2010433699}
-  - component: {fileID: 2010433698}
   m_Layer: 0
   m_Name: Cube
   m_TagString: Untagged
@@ -626,27 +623,3 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2010433698
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2010433693}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 20c24e604fce6a64d9d37cd9050ccd8f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!114 &2010433699
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2010433693}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3a2f0f857cbde9049b29c5f9f9bd505b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 

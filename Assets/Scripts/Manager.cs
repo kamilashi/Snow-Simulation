@@ -125,6 +125,7 @@ public class Manager : MonoBehaviour
     Bounds cellBounds;
     private int kernePopulateGrid;
     private int kernelComputeForces;
+    private int kernelApplyForces;
 
     uint gridThreadGroupSizeX;
     uint gridTthreadGroupSizeY;
@@ -142,7 +143,6 @@ public class Manager : MonoBehaviour
 
     Renderer rend;
     RenderTexture groundHeightMapTexture;
-    //RenderTexture snowInputHeightMapTexture;
     RenderTexture snowHeightMapTexture;
     RenderTexture debugText;
     private void CreateTextures()
@@ -150,10 +150,6 @@ public class Manager : MonoBehaviour
             groundHeightMapTexture = new RenderTexture(texResolution, texResolution, 0);
             groundHeightMapTexture.enableRandomWrite = true;
             groundHeightMapTexture.Create();
-
-            //snowInputHeightMapTexture = new RenderTexture(texResolution, texResolution, 0);
-            //snowInputHeightMapTexture.enableRandomWrite = true;
-            //snowInputHeightMapTexture.Create();
 
             snowHeightMapTexture = new RenderTexture(texResolution, texResolution, 0);
             snowHeightMapTexture.enableRandomWrite = true;
@@ -174,14 +170,11 @@ public class Manager : MonoBehaviour
     private void GenerateHeightMap()
     {
         kernelHandleHeight = shader.FindKernel("GenerateHeight");
-
         kernelInitHeight = shader.FindKernel("InitSnowHeight");
 
         shader.SetInt("texResolution", texResolution);
         shader.SetTexture(kernelHandleHeight, "GroundHeightMap", groundHeightMapTexture);
-        //shader.SetTexture(kernelHandleHeight, "SnowInputHeightMap", snowInputHeightMapTexture);
         shader.SetTexture(kernelHandleHeight, "Debug", debugText);
-
 
         shader.SetTexture(kernelInitHeight, "SnowHeightMap", snowHeightMapTexture);
 
@@ -283,6 +276,11 @@ public class Manager : MonoBehaviour
         shader.SetBuffer(kernelComputeForces, "cellGridBuffer", cellGridBuffer);
         shader.SetTexture(kernelComputeForces, "GroundHeightMap", groundHeightMapTexture);
         shader.SetTexture(kernelComputeForces, "SnowHeightMap", snowHeightMapTexture);
+
+        kernelApplyForces = shader.FindKernel("ApplyForces");
+        shader.SetBuffer(kernelApplyForces, "cellGridBuffer", cellGridBuffer);
+        shader.SetTexture(kernelApplyForces, "GroundHeightMap", groundHeightMapTexture);
+        shader.SetTexture(kernelApplyForces, "SnowHeightMap", snowHeightMapTexture);
     }
     Bounds particleBounds;
     private int kernelInitSnow;
@@ -386,7 +384,7 @@ public class Manager : MonoBehaviour
         shader.SetFloat("timeScale", timeScale);
         shader.SetFloat("simulationSpeed", simulationSpeed);
 
-        //shader.GetKernelThreadGroupSizes(kernelHandleHeight, out heightThreadGroupSizeX, out heightThreadGroupSizeY, out _);
+        shader.GetKernelThreadGroupSizes(kernelHandleHeight, out heightThreadGroupSizeX, out heightThreadGroupSizeY, out _);
         shader.Dispatch(kernelHandleHeight, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX), Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY), 1);
         // clears grid
         shader.Dispatch(kernePopulateGrid, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),
@@ -394,6 +392,10 @@ public class Manager : MonoBehaviour
                                               Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
 
         shader.Dispatch(kernelComputeForces, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),
+                                              Mathf.CeilToInt((float)gridHeight / (float)gridTthreadGroupSizeY),
+                                              Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
+        
+        shader.Dispatch(kernelApplyForces, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),
                                               Mathf.CeilToInt((float)gridHeight / (float)gridTthreadGroupSizeY),
                                               Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
 
