@@ -221,7 +221,7 @@ void ApplyForces(uint3 id : SV_DispatchThreadID)
         Cell from_cell = cellGridBuffer[from_cell_i];
 
         float m_tot = cell.mass + from_cell.mass;
-        float V_temp = cellSize * cellSize * (cellSize - x);
+        float V_temp = cellSize * cellSize * (cellSize - x * deltaTime * 0.000001);
         cell.density = (float) cell.mass / (float) V_temp;
         cell.mass = (float) cell.density * (float) V_cell;
 

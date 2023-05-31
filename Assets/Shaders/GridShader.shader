@@ -106,7 +106,7 @@ Shader "Custom/GridShader"
 			if (_Show_Force) {
 				float3 force = (cell.force * 1000000.0f);
 				_Color.r = (force.x);
-				_Color.g = (force.y);
+				_Color.g = clamp(force.y, -1.0f, 1.0f);
 				_Color.b = (force.z);
 
 				//_Color.a = abs((abs(force.y) + abs(force.x) + abs(force.z))/3.0f);
