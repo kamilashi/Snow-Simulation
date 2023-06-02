@@ -146,7 +146,7 @@ void PopulateGrid(uint3 id : SV_DispatchThreadID)
         cell.density = 100.0f;
 
     }
-    else if (cell.WSposition.y <= snowLevel)
+    else if (cell.WSposition.y < snowLevel)
     {
         cell.isOccupied = 1; //below snow surface but above ground - inside snow pack
 
@@ -213,10 +213,10 @@ void ApplyForces(uint3 id : SV_DispatchThreadID)
     float force_y = cell.force.y;
     float3 force_dir = float3(0, 1, 0) * ((float) force_y / (float) abs(force_y));
     
-    if (cell.WSposition.y > 1.5f)
-    {
-        cell.density = 0.0f;
-    }
+    //if (cell.WSposition.y > 0.5f)
+    //{
+    //    cell.density = 0.0f;
+    //}
     
     float x = max(((float) sqrt(force_y * force_y) - cell.hardness), 0.0f) / (float) k_springCoefficient; // any force that is lower than the snows 
     if ((x > 0) && (cell.density < maxSnowDensity))
@@ -247,11 +247,13 @@ void UpdateSnowHeight(uint3 id : SV_DispatchThreadID)
 {
     int index = id.x + gridDimensions.x * id.y + gridDimensions.y * gridDimensions.x * id.z;
     Cell cell = cellGridBuffer[index];
-    float3 upPos = cell.WSposition + float3(0, cellSize, 0);
     
     int2 coords = posTocoords(cell.WSposition);
     float groundLevel = GroundHeightMap[coords].x + planeCenter.y;
-    float snowHeight =  cellSize;
+    float snowHeight = 0;
+    
+    
+    float3 upPos = float3(0, groundLevel + cellSize, 0);
     
     Cell upperCell;
     int upperCellI;
@@ -260,27 +262,32 @@ void UpdateSnowHeight(uint3 id : SV_DispatchThreadID)
     {
         upperCellI = getGridIndexFromPosition(upPos);
         upperCell = cellGridBuffer[upperCellI];
-        if (upperCell.density > 0.0f)
+        if (upperCell.density > 0.0f) 
         {
-            snowHeight += cellSize;
-            upPos = upperCell.WSposition + float3(0, cellSize, 0);
+            //if (upperCell.WSposition.y > groundLevel)
+            //{
+                snowHeight += cellSize;
+           // }
+                upPos = upperCell.WSposition + float3(0, cellSize, 0);
         }
         else
         {
+            //upperCell.isOccupied = -1;
+            //cellGridBuffer[upperCellI] = upperCell;
             break;
         }
     }
     
     [unroll]
-    for (int i = 0; i < 2; i++)
+    for (int i = -2; i < 2; i++)
     {
         [unroll]
-        for (int j = 0; j < 2; j++)
+        for (int j = -2; j < 2; j++)
         {
             int2 interpolateCoords = (int2) clamp(coords + int2(j, i), 0, texResolution);
-            //SnowHeightMap[interpolateCoords] = float4(((snowHeight - groundLevel) / (float) snowHeightFactor).xxx, 1.0f);
+           SnowHeightMap[interpolateCoords] = float4((snowHeight / (float) snowHeightFactor).xxx, 1.0f);
             
-           SnowHeightMap[interpolateCoords] = float4((0.2f).xxx, 1.0f);
+           //SnowHeightMap[interpolateCoords] = float4((0.2f).xxx, 1.0f);
         }
     }
 }

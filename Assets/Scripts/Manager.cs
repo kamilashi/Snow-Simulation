@@ -54,7 +54,7 @@ public class Manager : MonoBehaviour
             gridIndex = new Vector3(gridX, gridY, gridZ);
             WSposition =  Vector3.zero;
             force = Vector3.zero;
-            density = 20.7f;
+            density = 1.7f;
             hardness = 0.01f;
             temperature = -3.0f;
             mass = 0.0f;
