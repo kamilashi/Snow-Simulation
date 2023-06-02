@@ -40,12 +40,18 @@ Shader "Unlit/snow"
             float4 _GroundHeightMap_ST;
             float _OffsetX;
 
+            StructuredBuffer<float> snowHeightBuffer;
+
             v2f vert (appdata v)
             {
                 v2f o;
-                float snowHeight = tex2Dlod(_SnowHeightMap, float4(v.uv, 0.0, 0.0)).x;
+                //float snowHeight = tex2Dlod(_SnowHeightMap, float4(v.uv, 0.0, 0.0)).x;
+                int _texResolution = 1024;
+                uint index = (uint) floor((0.9-v.uv.x) * _texResolution) + floor((0.9 -v.uv.y) * _texResolution) *_texResolution;
+                float snowHeight = snowHeightBuffer[index];
                 float groundHeight = tex2Dlod(_GroundHeightMap, float4(v.uv, 0.0, 0.0)).x;
-                v.position.y += groundHeight + snowHeight *_SnowFactorMax;
+
+                v.position.y += groundHeight + snowHeight;
                 o.position = UnityObjectToClipPos(v.position);
                 o.uv = v.uv;
                 return o;
@@ -53,8 +59,7 @@ Shader "Unlit/snow"
 
             fixed4 frag (v2f i) : SV_Target
             {
-                // sample the texture
-                fixed4 col = tex2D(_SnowHeightMap, i.uv)+ (0.2, 0.2, 0.2, 0); //some snow offsetcolorto makeit more white
+                fixed4 col = tex2D(_GroundHeightMap, i.uv);
                 
                 return col;
             }

@@ -51,6 +51,7 @@ struct Collider
 
 //RWStructuredBuffer<Particle> particleBuffer;
 RWStructuredBuffer<Cell> cellGridBuffer;
+RWStructuredBuffer<float> snowHeightBuffer;
 
 shared RWTexture2D<float4> GroundHeightMap;
 //since you can't store values > 1 in a texture, the normalized height will be calculated here based on light exposure, when multiplied by a scaling snowHeightMaxFactor in the vertex shader, max value is controlled my a script
@@ -111,6 +112,12 @@ bool isWithinGrid(float3 position)
     return true;
 }
 
+uint indexTextToArray(uint2 id)
+{
+    uint index = id.x + texResolution * id.y;
+    return index;
+}
+
 [numthreads(32, 32, 1)]
 void GenerateHeight(uint3 id : SV_DispatchThreadID)
 {
@@ -126,7 +133,8 @@ void GenerateHeight(uint3 id : SV_DispatchThreadID)
 [numthreads(32, 32, 1)]
 void InitSnowHeight(uint3 id : SV_DispatchThreadID)
 {
-    SnowHeightMap[id.xy] = float4(1.0f, 1.0f, 1.0f, 1.0f);
+    //SnowHeightMap[id.xy] = float4(1.0f, 1.0f, 1.0f, 1.0f);
+    snowHeightBuffer[indexTextToArray(id.xy)] = 1.0f * snowHeightFactor;
 }
 
 //called every update
@@ -138,7 +146,8 @@ void PopulateGrid(uint3 id : SV_DispatchThreadID)
     cell.WSposition = (float3((float) id.x + (float) cellSize / 4.0f, (float) id.y + (float) cellSize / 4.0f, (float) id.z + (float) cellSize / 4.0f) + (gridCenter - (float3) gridDimensions * 0.5f)) * cellSize;
     int2 coords = posTocoords(cell.WSposition);
     float groundLevel = GroundHeightMap[coords].x + planeCenter.y;
-    float snowLevel = groundLevel + SnowHeightMap[coords].x * snowHeightFactor;
+    //float snowLevel = groundLevel + SnowHeightMap[coords].x * snowHeightFactor;
+    float snowLevel = groundLevel + snowHeightBuffer[indexTextToArray(coords)];
     
     if (cell.WSposition.y < groundLevel)
     {
@@ -184,7 +193,7 @@ void ComputeForces(uint3 id : SV_DispatchThreadID)
     
         int2 coords = posTocoords(cell.WSposition);
         float groundLevel = GroundHeightMap[coords].x + planeCenter.y;
-        float snowLevel = groundLevel + SnowHeightMap[coords].x * snowHeightFactor;
+        float snowLevel = groundLevel + snowHeightBuffer[indexTextToArray(coords)];;
     
         
         while (upperCell.isOccupied >= -1)
@@ -285,9 +294,8 @@ void UpdateSnowHeight(uint3 id : SV_DispatchThreadID)
         for (int j = -2; j < 2; j++)
         {
             int2 interpolateCoords = (int2) clamp(coords + int2(j, i), 0, texResolution);
-           SnowHeightMap[interpolateCoords] = float4((snowHeight / (float) snowHeightFactor).xxx, 1.0f);
-            
-           //SnowHeightMap[interpolateCoords] = float4((0.2f).xxx, 1.0f);
+           //SnowHeightMap[interpolateCoords] = float4((snowHeight / (float) snowHeightFactor).xxx, 1.0f);
+            //snowHeightBuffer[indexTextToArray(coords)] = snowHeight;
         }
     }
 }
