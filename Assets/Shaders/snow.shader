@@ -29,8 +29,9 @@ Shader "Unlit/snow"
 
             struct v2f
             {
-                float2 uv : TEXCOORD0;
                 float4 position : SV_POSITION;
+                float2 uv : TEXCOORD0;
+                float snowHeight : TEXCOORD1; //needs to be interpolated
             };
 
             sampler2D _SnowHeightMap;
@@ -48,10 +49,10 @@ Shader "Unlit/snow"
                 //float snowHeight = tex2Dlod(_SnowHeightMap, float4(v.uv, 0.0, 0.0)).x;
                 int _texResolution = 1024;
                 uint index = (uint) floor((0.9-v.uv.x) * _texResolution) + floor((0.9 -v.uv.y) * _texResolution) *_texResolution;
-                float snowHeight = snowHeightBuffer[index];
+                o.snowHeight = snowHeightBuffer[index];
                 float groundHeight = tex2Dlod(_GroundHeightMap, float4(v.uv, 0.0, 0.0)).x;
 
-                v.position.y += groundHeight + snowHeight;
+                v.position.y += groundHeight + o.snowHeight;
                 o.position = UnityObjectToClipPos(v.position);
                 o.uv = v.uv;
                 return o;

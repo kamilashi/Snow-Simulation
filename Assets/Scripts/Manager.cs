@@ -427,7 +427,7 @@ public class Manager : MonoBehaviour
                                               Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
 
         shader.Dispatch(kernelUpdateSnowHeight, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),
-                                              1,
+                                             1,
                                               Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
 
         //no lagrangian particles for now:
@@ -476,6 +476,8 @@ public class Manager : MonoBehaviour
             //Debug.Log("args buffer released " + argsBuffer);
             gridArgsBuffer.Release();
         }
+
+        snowHeightBuffer.Release();
 
         //particleBuffer.Release();
 
