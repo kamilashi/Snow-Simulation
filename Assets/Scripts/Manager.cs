@@ -54,7 +54,7 @@ public class Manager : MonoBehaviour
             gridIndex = new Vector3(gridX, gridY, gridZ);
             WSposition =  Vector3.zero;
             force = Vector3.zero;
-            density = 1.7f;
+            density = 2.7f;
             hardness = 0.01f;
             temperature = -3.0f;
             mass = 0.0f;
@@ -262,6 +262,7 @@ public class Manager : MonoBehaviour
 
         kernePopulateGrid = shader.FindKernel("PopulateGrid");
         shader.SetBuffer(kernePopulateGrid, "cellGridBuffer", cellGridBuffer);
+        shader.SetBuffer(kernePopulateGrid, "snowHeightBuffer", snowHeightBuffer);
 
         kerneClearGrid = shader.FindKernel("ClearGrid");
         shader.SetBuffer(kerneClearGrid, "cellGridBuffer", cellGridBuffer);
@@ -279,7 +280,6 @@ public class Manager : MonoBehaviour
         shader.SetTexture(kernePopulateGrid, "SnowHeightMap", snowHeightMapTexture);
         shader.SetTexture(kernePopulateGrid, "Debug", debugText);
 
-        shader.SetBuffer(kernePopulateGrid, "snowHeightBuffer", snowHeightBuffer);
 
 
         shader.GetKernelThreadGroupSizes(kernePopulateGrid, out gridThreadGroupSizeX, out gridTthreadGroupSizeY, out gridThreadGroupSizeZ);
@@ -427,14 +427,6 @@ public class Manager : MonoBehaviour
                                               Mathf.CeilToInt((float)gridHeight / (float)gridTthreadGroupSizeY),
                                               Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
 
-
-
-        //shader.Dispatch(kernelUpdateSnowHeight, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),
-        //                                     1,
-        //                                      Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
-
-
-
         shader.Dispatch(kernelUpdateSnowHeight, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX),
                                              Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY),
                                              Mathf.CeilToInt((float)gridHeight / (float)heightThreadGroupSizeZ));
@@ -488,7 +480,7 @@ public class Manager : MonoBehaviour
 
         snowHeightBuffer.Release();
 
-        //particleBuffer.Release();
+        particleBuffer.Release();
 
         //if (particleArgsBuffer != null)
         //{
