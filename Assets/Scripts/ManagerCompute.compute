@@ -1,6 +1,7 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel GenerateHeight
 #pragma kernel InitSnowHeight
+#pragma kernel ClearSnowHeight
 #pragma kernel PopulateGrid
 #pragma kernel ComputeForces
 #pragma kernel ApplyForces
@@ -136,11 +137,12 @@ uint indexTexToGrid(uint3 id)
 [numthreads(32, 32, 1)]
 void GenerateHeight(uint3 id : SV_DispatchThreadID)
 {
-    time *= timeScale;
+    //time *= timeScale;
     
     float2 uv = float2((float) id.x / (float) texResolution, (float) id.y / (float) texResolution);
-    float2 uvOffset = float2(time, 0.0f);
-    float heightMap = SimpleNoise(uv - uvOffset, 5) * 2.0f;
+   // float2 uvOffset = float2(time, 0.0f);
+    //float heightMap = SimpleNoise(uv - uvOffset, 5) * 2.0f;
+    float heightMap = SimpleNoise(uv, 5) * 2.0f;
     GroundHeightMap[id.xy] = float4(heightMap.xxx, 1.0f);
     Debug[id.xy] = float4(heightMap.xxx, 1.0f);
 }
@@ -149,6 +151,12 @@ void GenerateHeight(uint3 id : SV_DispatchThreadID)
 void InitSnowHeight(uint3 id : SV_DispatchThreadID)
 {
     snowHeightBuffer[indexTextToArray(id.xy)] = 1.0f * snowHeightFactor;
+}
+
+[numthreads(32, 32, 1)]
+void ClearSnowHeight(uint3 id : SV_DispatchThreadID)
+{
+    snowHeightBuffer[indexTextToArray(id.xy)] = 0.0f;
 }
 
 //called every update
@@ -226,7 +234,8 @@ void ComputeForces(uint3 id : SV_DispatchThreadID)
 [numthreads(10, 10, 10)]
 void ApplyForces(uint3 id : SV_DispatchThreadID)
 {
-
+    //TODO: better refactor for the upper cells to contribute to the lower ones, not the other way around
+    
     int index = id.x + gridDimensions.x * id.y + gridDimensions.y * gridDimensions.x * id.z;
     Cell cell = cellGridBuffer[index];
 
@@ -263,16 +272,16 @@ void ApplyForces(uint3 id : SV_DispatchThreadID)
 void UpdateSnowHeight(uint3 id : SV_DispatchThreadID)
 {
     
-    //int2 coords = id.xy;
-    //float groundLevel = GroundHeightMap[coords].x + planeCenter.y;
+    int2 coords = id.xy;
+    float groundLevel = GroundHeightMap[coords].x + planeCenter.y;
     
-    //int index = indexTexToGrid(id);
-    //Cell cell = cellGridBuffer[index];
+    int index = indexTexToGrid(id);
+    Cell cell = cellGridBuffer[index];
     
-    //if ((cell.density > 0.0f) && (cell.WSposition.y > groundLevel))
-    //{
-    //    snowHeightBuffer[indexTextToArray(coords)] = cell.WSposition.y - groundLevel + cellSize*0.5;
-    //}
+    if ((cell.density > 0.05f) && (cell.WSposition.y > groundLevel))
+    {
+        snowHeightBuffer[indexTextToArray(coords)] += cellSize;
+    }
 }
 
 [numthreads(10, 10, 10)]
