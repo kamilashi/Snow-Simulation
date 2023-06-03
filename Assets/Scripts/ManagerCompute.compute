@@ -114,7 +114,22 @@ bool isWithinGrid(float3 position)
 
 uint indexTextToArray(uint2 id)
 {
-    uint index = id.x + texResolution * id.y;
+    uint index = (id.x) + texResolution * (id.y);
+    return index;
+}
+
+uint indexTexToGrid(uint3 id)
+{
+    uint3 cell_id;
+    cell_id.x =  ceil(((float) id.x) / (float) (texResolution));
+    cell_id.y =  ceil(((float) id.y) / (float) (texResolution));
+    //cell_id.z = round((id.z) / (float) texResolution);
+    
+    cell_id.x *= ceil(gridDimensions.x-1);
+    cell_id.z = cell_id.y * ceil(gridDimensions.z - 1);
+    cell_id.y = id.z;
+    
+    uint index = cell_id.x + gridDimensions.x * cell_id.y + gridDimensions.y * gridDimensions.x * cell_id.z;
     return index;
 }
 
@@ -149,7 +164,7 @@ void PopulateGrid(uint3 id : SV_DispatchThreadID)
     //float snowLevel = groundLevel + SnowHeightMap[coords].x * snowHeightFactor;
     float snowLevel = groundLevel + snowHeightBuffer[indexTextToArray(coords)];
     
-    if (cell.WSposition.y < groundLevel)
+    if (cell.WSposition.y < groundLevel-cellSize)
     {
         cell.isOccupied = -2; //below ground
         cell.density = 100.0f;
@@ -222,7 +237,7 @@ void ApplyForces(uint3 id : SV_DispatchThreadID)
     float force_y = cell.force.y;
     float3 force_dir = float3(0, 1, 0) * ((float) force_y / (float) abs(force_y));
     
-    if (cell.WSposition.y > 0.5f)
+    if (cell.WSposition.y > 1.5f)
     {
         cell.density = 0.0f;
     }
@@ -250,6 +265,42 @@ void ApplyForces(uint3 id : SV_DispatchThreadID)
     }
     cellGridBuffer[index] = cell;
 }
+
+[numthreads(32, 32, 1)]
+void UpdateSnowHeight(uint3 id : SV_DispatchThreadID)
+{
+    
+    int2 coords = id.xy;
+    float groundLevel = GroundHeightMap[coords].x + planeCenter.y;
+    //float snowHeight = cellSize;
+    
+    int index = indexTexToGrid(id);
+    Cell cell = cellGridBuffer[index];
+    
+    if ((cell.density > 0.0f) && (cell.WSposition.y > groundLevel))
+    {
+        snowHeightBuffer[indexTextToArray(coords)] = cell.WSposition.y - groundLevel;
+    }
+    
+    //float3 upPos = float3(cell.WSposition.x, groundLevel + cellSize, cell.WSposition.z);
+    
+    //Cell upperCell;
+    //int upperCellI;
+    
+    //while (isWithinGrid(upPos))
+    //{
+    //    upperCellI = getGridIndexFromPosition(upPos);
+    //    upperCell = cellGridBuffer[upperCellI];
+    //    if ((upperCell.density > 0.0f) && (upperCell.WSposition.y > groundLevel))
+    //    {
+    //        snowHeight += cellSize;
+    //    }
+    //    upPos = upperCell.WSposition + float3(0, cellSize, 0);
+    //}
+    
+    //snowHeightBuffer[indexTextToArray(coords)] = snowHeight;
+}
+
 
 //[numthreads(10, 1, 10)]
 //void UpdateSnowHeight(uint3 id : SV_DispatchThreadID)
@@ -289,50 +340,6 @@ void ApplyForces(uint3 id : SV_DispatchThreadID)
 //        }
 //    }
 //}
-
-[numthreads(32, 32, 1)]
-void UpdateSnowHeight(uint3 id : SV_DispatchThreadID)
-{
-    
-    float groundLevel = GroundHeightMap[id.xy].x + planeCenter.y;
-    float snowHeight = cellSize;
-    
-    float3 cellPosition = (float3((float) id.x + (float) cellSize / 4.0f, (float) id.y + (float) cellSize / 4.0f, (float) id.z + (float) cellSize / 4.0f) + (gridCenter - (float3) gridDimensions * 0.5f)) * cellSize;
-   
-    int index = id.x + gridDimensions.x * id.y + gridDimensions.y * gridDimensions.x * id.z;
-    Cell cell = cellGridBuffer[index];
-    
-    int2 coords = posTocoords(cell.WSposition);
-    
-    
-    float3 upPos = float3(cell.WSposition.x, groundLevel + cellSize, cell.WSposition.z);
-    
-    Cell upperCell;
-    int upperCellI;
-    
-    while (isWithinGrid(upPos))
-    {
-        upperCellI = getGridIndexFromPosition(upPos);
-        upperCell = cellGridBuffer[upperCellI];
-        if ((upperCell.density > 0.0f) && (upperCell.WSposition.y > groundLevel))
-        {
-            snowHeight += cellSize;
-        }
-        upPos = upperCell.WSposition + float3(0, cellSize, 0);
-    }
-    
-    [unroll]
-    for (int i = -20; i < 20; i++)
-    {
-        [unroll]
-        for (int j = -20; j < 20; j++)
-        {
-            uint2 interpolateCoords = (uint2) clamp((coords + int2(i, j)), 0, texResolution);
-            snowHeightBuffer[indexTextToArray(interpolateCoords)] = snowHeight;
-        }
-    }
-}
-
 
 [numthreads(10, 10, 10)]
 void ClearGrid(uint3 id : SV_DispatchThreadID)

@@ -171,6 +171,7 @@ public class Manager : MonoBehaviour
     }
     uint heightThreadGroupSizeX;
     uint heightThreadGroupSizeY;
+    uint heightThreadGroupSizeZ;
     int kernelHandleHeight;
     int kernelInitHeight;
     private void GenerateHeightMap()
@@ -411,7 +412,7 @@ public class Manager : MonoBehaviour
         shader.SetFloat("timeScale", timeScale);
         shader.SetFloat("simulationSpeed", simulationSpeed);
 
-        shader.GetKernelThreadGroupSizes(kernelHandleHeight, out heightThreadGroupSizeX, out heightThreadGroupSizeY, out _);
+        shader.GetKernelThreadGroupSizes(kernelHandleHeight, out heightThreadGroupSizeX, out heightThreadGroupSizeY, out heightThreadGroupSizeZ);
         shader.Dispatch(kernelHandleHeight, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX), Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY), 1);
         // clears grid
         shader.Dispatch(kernePopulateGrid, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),
@@ -421,14 +422,22 @@ public class Manager : MonoBehaviour
         shader.Dispatch(kernelComputeForces, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),
                                               Mathf.CeilToInt((float)gridHeight / (float)gridTthreadGroupSizeY),
                                               Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
-        
+
         shader.Dispatch(kernelApplyForces, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),
                                               Mathf.CeilToInt((float)gridHeight / (float)gridTthreadGroupSizeY),
                                               Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
 
-        shader.Dispatch(kernelUpdateSnowHeight, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),
-                                             1,
-                                              Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
+
+
+        //shader.Dispatch(kernelUpdateSnowHeight, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),
+        //                                     1,
+        //                                      Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
+
+
+
+        shader.Dispatch(kernelUpdateSnowHeight, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX),
+                                             Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY),
+                                             Mathf.CeilToInt((float)gridHeight / (float)heightThreadGroupSizeZ));
 
         //no lagrangian particles for now:
         //shader.Dispatch(kernelCollisionDetection, Mathf.CeilToInt((float)particlesPerAxis.x / (float)snowThreadGroupSizeX),
