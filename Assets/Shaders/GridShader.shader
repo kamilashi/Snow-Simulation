@@ -4,7 +4,8 @@ Shader "Custom/GridShader"
 	Properties{
 		_Color("Color", Color) = (0,0,0,1)
 		[Toggle(SHOW_FORCE)] _Show_Force("Show Force", Float) = 0
-		[Toggle(SHOW_CNOWPARAMS)] _Show_SnowParams("Show Snow Paramt", Float) = 0
+		[Toggle(SHOW_SNOWPARAMS)] _Show_SnowParams("Show Snow Paramt", Float) = 0
+		[Toggle(SHOW_INDEXES)] _Show_Indexes("Show Indexes", Float) = 0
 		//_HeightMap("Albedo (RGB)", 2D) = "white" {}
 	}
 
@@ -28,6 +29,7 @@ Shader "Custom/GridShader"
 		float3 _Position;
 		float _Show_Force;
 		float _Show_SnowParams;
+		float _Show_Indexes;
 		float _CellSize;
 		float _Metallic;
 
@@ -109,6 +111,15 @@ Shader "Custom/GridShader"
 				_Color.b = force.z;
 
 				_Color.a = 1.0f * saturate(length(force));
+			}
+			
+			if ((_Show_Indexes)) {
+				float3 index = ((float3) cell.gridIndex/ (float) 50.0f);
+				_Color.r = index.x;
+				_Color.g = index.y;
+				_Color.b = index.z;
+
+				_Color.a = 0.5f;
 			}
 			
 		#endif

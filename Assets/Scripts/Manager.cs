@@ -24,7 +24,8 @@ public class Manager : MonoBehaviour
     [Range(0.0f, 10.0f)]
     public float snowHeightScale = 5.0f;
     private float time = 0.0f; 
-    private float maxSnowDensity;
+    private float maxSnowDensity = 1.0f;
+    private float k_springCoefficient = 2.80f;
 
     private int gridWidth;
     private int gridHeight;
@@ -54,8 +55,8 @@ public class Manager : MonoBehaviour
             gridIndex = new Vector3(gridX, gridY, gridZ);
             WSposition =  Vector3.zero;
             force = Vector3.zero;
-            density = 2.7f;
-            hardness = 0.01f;
+            density = 0.5f;
+            hardness = 0.07f;
             temperature = -3.0f;
             mass = 0.0f;
             grainSize = 0.2f;
@@ -228,7 +229,6 @@ public class Manager : MonoBehaviour
         gridWidth = 50;
         gridHeight = 50;
         gridDepth = 50;
-        maxSnowDensity = 6 * 100000; //g/m^3
         heightArraySize = texResolution * texResolution;
 
     }
@@ -271,6 +271,8 @@ public class Manager : MonoBehaviour
         Debug.Log(gridDimensions.ToString());
         shader.SetInts( "gridDimensions", gridDimensions); //in cell numbers! 
         shader.SetFloat("cellSize", cellSize);
+        shader.SetFloat("maxSnowDensity", maxSnowDensity);
+        shader.SetFloat("k_springCoefficient", k_springCoefficient); 
         shader.SetFloat("V_cell", cellSize* cellSize* cellSize);
         float[] gridC = new float[] { gridCenter.x, gridCenter.y, gridCenter.z };
        // Debug.Log("gridC " + gridC[1]);
@@ -480,7 +482,7 @@ public class Manager : MonoBehaviour
 
         snowHeightBuffer.Release();
 
-        particleBuffer.Release();
+        //particleBuffer.Release();
 
         //if (particleArgsBuffer != null)
         //{
