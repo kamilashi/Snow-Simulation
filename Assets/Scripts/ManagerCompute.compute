@@ -231,11 +231,11 @@ void ApplyForces(uint3 id : SV_DispatchThreadID)
     Cell cell = cellGridBuffer[index];
 
     float force_y = cell.force.y;
-    //float3 force_dir = float3(0, 1, 0) * ((float) force_y / (float) abs(force_y));
-    float3 force_dir = float3(0, -1, 0);
+    float3 force_dir = float3(0, 1, 0) * ((float) force_y / (float) abs(force_y));
     
     float x = max(( abs(force_y) - cell.hardness), 0.0f) / (float) k_springCoefficient; // any force that is lower than the snows 
-    //x *= deltaTime;
+    x *= deltaTime * timeScale;
+    
     if ((x > 0) && (cell.density < maxSnowDensity))
     {
         float3 from_cell_pos = cell.WSposition - force_dir * cellSize; // get the cell the force is coming from
@@ -247,13 +247,12 @@ void ApplyForces(uint3 id : SV_DispatchThreadID)
         Cell from_cell = cellGridBuffer[from_cell_i];
 
         float m_tot = cell.mass + from_cell.mass;
-        float Vnew_to_Vold = (cellSize - x * deltaTime) / (float) (cellSize);
+        float Vnew_to_Vold = max((cellSize - x),0) / (float) (cellSize);
         cell.density = cell.density / (float) Vnew_to_Vold;
         cell.mass = (float) cell.density * (float) V_cell;
 
         from_cell.mass = max(m_tot - cell.mass, 0.0f);
         from_cell.density = from_cell.mass / (float) V_cell;
-        //cell.density = (id.y);
 
         cellGridBuffer[from_cell_i] = from_cell;
         cellGridBuffer[index] = cell;

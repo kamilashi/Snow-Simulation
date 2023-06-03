@@ -17,7 +17,7 @@ public class Manager : MonoBehaviour
     public float cellSize;
     private float planeSideSize;
 
-    [Range(0.0f, 1.0f)]
+    [Range(0.0f, 5.0f)]
     public float timeScale = 0.5f;
     [Range(0.0f, 1.0f)]
     public float simulationSpeed = 0.5f;
@@ -387,9 +387,12 @@ public class Manager : MonoBehaviour
         shader.SetTexture(kernelInitSnow, "SnowHeightMap", snowHeightMapTexture);
 
         //no particles for now
+        shader.GetKernelThreadGroupSizes(kernelHandleHeight, out heightThreadGroupSizeX, out heightThreadGroupSizeY, out heightThreadGroupSizeZ);
+        shader.Dispatch(kernelHandleHeight, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX), Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY), 1);
+       
 
-       shader.GetKernelThreadGroupSizes(kernelInitSnow, out snowThreadGroupSizeX, out snowTthreadGroupSizeY, out snowThreadGroupSizeZ);
-       shader.Dispatch(kernelInitSnow, Mathf.CeilToInt((float)particlesPerAxis.x / (float)snowThreadGroupSizeX),
+        shader.GetKernelThreadGroupSizes(kernelInitSnow, out snowThreadGroupSizeX, out snowTthreadGroupSizeY, out snowThreadGroupSizeZ);
+        shader.Dispatch(kernelInitSnow, Mathf.CeilToInt((float)particlesPerAxis.x / (float)snowThreadGroupSizeX),
                                           Mathf.CeilToInt((float)particlesPerAxis.y / (float)snowTthreadGroupSizeY),
                                           Mathf.CeilToInt((float)particlesPerAxis.z / (float)snowThreadGroupSizeZ));
         shader.Dispatch(kernelSetGridVelocity, 1, 1, 1);
@@ -414,9 +417,8 @@ public class Manager : MonoBehaviour
         shader.SetFloat("timeScale", timeScale);
         shader.SetFloat("simulationSpeed", simulationSpeed);
 
+
         shader.GetKernelThreadGroupSizes(kernelHandleHeight, out heightThreadGroupSizeX, out heightThreadGroupSizeY, out heightThreadGroupSizeZ);
-        shader.Dispatch(kernelHandleHeight, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX), Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY), 1);
-        // clears grid
         shader.Dispatch(kernePopulateGrid, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),
                                               Mathf.CeilToInt((float)gridHeight / (float)gridTthreadGroupSizeY),
                                               Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
