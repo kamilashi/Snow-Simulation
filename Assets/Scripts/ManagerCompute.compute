@@ -279,26 +279,8 @@ void UpdateSnowHeight(uint3 id : SV_DispatchThreadID)
     
     if ((cell.density > 0.0f) && (cell.WSposition.y > groundLevel))
     {
-        snowHeightBuffer[indexTextToArray(coords)] = cell.WSposition.y - groundLevel;
+        snowHeightBuffer[indexTextToArray(coords)] = cell.WSposition.y - groundLevel + cellSize*0.5;
     }
-    
-    //float3 upPos = float3(cell.WSposition.x, groundLevel + cellSize, cell.WSposition.z);
-    
-    //Cell upperCell;
-    //int upperCellI;
-    
-    //while (isWithinGrid(upPos))
-    //{
-    //    upperCellI = getGridIndexFromPosition(upPos);
-    //    upperCell = cellGridBuffer[upperCellI];
-    //    if ((upperCell.density > 0.0f) && (upperCell.WSposition.y > groundLevel))
-    //    {
-    //        snowHeight += cellSize;
-    //    }
-    //    upPos = upperCell.WSposition + float3(0, cellSize, 0);
-    //}
-    
-    //snowHeightBuffer[indexTextToArray(coords)] = snowHeight;
 }
 
 
