@@ -41,7 +41,7 @@ Shader "Unlit/snow"
             float4 _GroundHeightMap_ST;
             float _OffsetX;
 
-            StructuredBuffer<float> snowHeightBuffer;
+            StructuredBuffer<float3> snowHeightBuffer;
 
             v2f vert (appdata v)
             {
@@ -53,7 +53,7 @@ Shader "Unlit/snow"
 
                 //uint index = (uint) ceil(saturate(max(v.uv.x, 0.0)) *( _texResolution-1)) + ceil(saturate(min(v.uv.y, 1)) * (_texResolution-1)) *_texResolution;
                 uint index = (uint) round(v.uv.x *( _texResolution-1)) + round(v.uv.y * (_texResolution-1)) *_texResolution;
-                o.snowHeight = snowHeightBuffer[index];
+                o.snowHeight = snowHeightBuffer[index].x;
                 float groundHeight = tex2Dlod(_GroundHeightMap, float4(v.uv, 0.0, 0.0)).x;
 
                 v.position.y += groundHeight + o.snowHeight;

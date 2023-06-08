@@ -98,7 +98,7 @@ public class Manager : MonoBehaviour
     int SIZE_PARTICLE = 7 * sizeof(float);
     Cell[] cellGridArray;
     Particle[] particleArray;
-    float[] snowHeightArray;
+    Vector3[] snowHeightArray; // x for height, y for mass...
     int heightArraySize;
 
     ComputeBuffer cellGridBuffer;
@@ -178,8 +178,8 @@ public class Manager : MonoBehaviour
     int kernelClearHeight;
     private void GenerateHeightMap()
     {
-        snowHeightArray = new float[heightArraySize];
-        snowHeightBuffer = new ComputeBuffer(heightArraySize, sizeof(float));
+        snowHeightArray = new Vector3[heightArraySize];
+        snowHeightBuffer = new ComputeBuffer(heightArraySize, 3*sizeof(float));
         snowHeightBuffer.SetData(snowHeightArray);
 
         kernelHandleHeight = shader.FindKernel("GenerateHeight");
@@ -272,14 +272,12 @@ public class Manager : MonoBehaviour
         shader.SetBuffer(kerneClearGrid, "cellGridBuffer", cellGridBuffer);
 
         int[] gridDimensions = new int[] { gridWidth, gridHeight, gridDepth };
-        Debug.Log(gridDimensions.ToString());
         shader.SetInts( "gridDimensions", gridDimensions); //in cell numbers! 
         shader.SetFloat("cellSize", cellSize);
         shader.SetFloat("maxSnowDensity", maxSnowDensity);
         shader.SetFloat("k_springCoefficient", k_springCoefficient); 
         shader.SetFloat("V_cell", cellSize* cellSize* cellSize);
         float[] gridC = new float[] { gridCenter.x, gridCenter.y, gridCenter.z };
-       // Debug.Log("gridC " + gridC[1]);
         shader.SetFloats("gridCenter", gridC);
         shader.SetInt("cellBufferLength", cellCount);
         shader.SetTexture(kernePopulateGrid, "GroundHeightMap", groundHeightMapTexture);
@@ -498,6 +496,12 @@ public class Manager : MonoBehaviour
         //    //Debug.Log("args buffer released " + argsBuffer);
         //    particleArgsBuffer.Release();
         //}
+    }
+
+    void OnGUI()
+    {
+        if (GUI.Button(new Rect(10, 70, 50, 30), "Print Mass"))
+            Debug.Log("Mass of column 0x0");
     }
 
     void DebugPrint()

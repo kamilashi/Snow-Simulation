@@ -52,7 +52,7 @@ struct Collider
 
 //RWStructuredBuffer<Particle> particleBuffer;
 RWStructuredBuffer<Cell> cellGridBuffer;
-RWStructuredBuffer<float> snowHeightBuffer;
+RWStructuredBuffer<float3> snowHeightBuffer;
 
 shared RWTexture2D<float4> GroundHeightMap;
 //since you can't store values > 1 in a texture, the normalized height will be calculated here based on light exposure, when multiplied by a scaling snowHeightMaxFactor in the vertex shader, max value is controlled my a script
@@ -150,13 +150,13 @@ void GenerateHeight(uint3 id : SV_DispatchThreadID)
 [numthreads(32, 32, 1)]
 void InitSnowHeight(uint3 id : SV_DispatchThreadID)
 {
-    snowHeightBuffer[indexTextToArray(id.xy)] = 1.0f * snowHeightFactor;
+    snowHeightBuffer[indexTextToArray(id.xy)].x = 1.0f * snowHeightFactor;
 }
 
 [numthreads(32, 32, 1)]
 void ClearSnowHeight(uint3 id : SV_DispatchThreadID)
 {
-    snowHeightBuffer[indexTextToArray(id.xy)] = 0.0f;
+    snowHeightBuffer[indexTextToArray(id.xy)].x = 0.0f;
 }
 
 //called every update
@@ -169,7 +169,7 @@ void PopulateGrid(uint3 id : SV_DispatchThreadID)
     int2 coords = posTocoords(cell.WSposition);
     float groundLevel = GroundHeightMap[coords].x + planeCenter.y;
     //float snowLevel = groundLevel + SnowHeightMap[coords].x * snowHeightFactor;
-    float snowLevel = groundLevel + snowHeightBuffer[indexTextToArray(coords)];
+    float snowLevel = groundLevel + snowHeightBuffer[indexTextToArray(coords)].x;
     
     if (cell.WSposition.y < groundLevel-cellSize)
     {
@@ -213,7 +213,7 @@ void ComputeForces(uint3 id : SV_DispatchThreadID)
     
         int2 coords = posTocoords(cell.WSposition);
         float groundLevel = GroundHeightMap[coords].x + planeCenter.y;
-        float snowLevel = groundLevel + snowHeightBuffer[indexTextToArray(coords)];
+        float snowLevel = groundLevel + snowHeightBuffer[indexTextToArray(coords)].x;
     
         while (upperCell.isOccupied >= -1)
         {
@@ -236,7 +236,7 @@ void ApplyForces(uint3 id : SV_DispatchThreadID)
 {
     //TODO: better refactor for the upper cells to contribute to the lower ones, not the other way around
     
-    int index = id.x + gridDimensions.x * id.y + gridDimensions.y * gridDimensions.x * id.z;
+    int index = id.x + gridDimensions.x * (49 -id.y) + gridDimensions.y * gridDimensions.x * id.z;
     Cell cell = cellGridBuffer[index];
 
     float force_y = cell.force.y;
@@ -280,7 +280,7 @@ void UpdateSnowHeight(uint3 id : SV_DispatchThreadID)
     
     if ((cell.density > 0.05f) && (cell.WSposition.y > groundLevel))
     {
-        snowHeightBuffer[indexTextToArray(coords)] += cellSize;
+        snowHeightBuffer[indexTextToArray(coords)].x += cellSize;
     }
 }
 
