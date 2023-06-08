@@ -303,6 +303,7 @@ public class Manager : MonoBehaviour
         shader.SetBuffer(kernelComputeForces, "cellGridBuffer", cellGridBuffer);
         shader.SetTexture(kernelComputeForces, "GroundHeightMap", groundHeightMapTexture);
         shader.SetTexture(kernelComputeForces, "SnowHeightMap", snowHeightMapTexture);
+        shader.SetBuffer(kernelComputeForces, "snowHeightBuffer", snowHeightBuffer);
 
         kernelApplyForces = shader.FindKernel("ApplyForces");
         shader.SetBuffer(kernelApplyForces, "cellGridBuffer", cellGridBuffer);
@@ -407,6 +408,7 @@ public class Manager : MonoBehaviour
         particleArgsBuffer.SetData(particleArgs);
         particleBounds = new Bounds(Vector3.zero, new Vector3(30, 30, 30)); //place holder
 
+
     }
         // Update is called once per frame
         void Update()
@@ -438,7 +440,8 @@ public class Manager : MonoBehaviour
         shader.Dispatch(kernelUpdateSnowHeight, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX),
                                              Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY),
                                              Mathf.CeilToInt((float)gridHeight / (float)heightThreadGroupSizeZ));
-
+        
+        
         //no lagrangian particles for now:
         //shader.Dispatch(kernelCollisionDetection, Mathf.CeilToInt((float)particlesPerAxis.x / (float)snowThreadGroupSizeX),
         //                                   Mathf.CeilToInt((float)particlesPerAxis.y / (float)snowTthreadGroupSizeY),
@@ -463,6 +466,8 @@ public class Manager : MonoBehaviour
         {
             Graphics.DrawMeshInstancedIndirect(cubeMesh, 0, GridMaterial, cellBounds, gridArgsBuffer);
         }
+
+        snowHeightBuffer.GetData(snowHeightArray);
 
         //shader.GetKernelThreadGroupSizes(kerneClearGrid, out gridThreadGroupSizeX, out gridTthreadGroupSizeY, out gridThreadGroupSizeZ);
         //shader.Dispatch(kerneClearGrid, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),
@@ -490,18 +495,30 @@ public class Manager : MonoBehaviour
 
         //particleBuffer.Release();
 
-        //if (particleArgsBuffer != null)
-        //{
+        if (particleArgsBuffer != null)
+        {
 
-        //    //Debug.Log("args buffer released " + argsBuffer);
-        //    particleArgsBuffer.Release();
-        //}
+            //Debug.Log("args buffer released " + argsBuffer);
+            particleArgsBuffer.Release();
+        }
     }
 
     void OnGUI()
     {
-        if (GUI.Button(new Rect(10, 70, 50, 30), "Print Mass"))
-            Debug.Log("Mass of column 0x0");
+        if (GUI.Button(new Rect(10, 35, 50, 30), "Print Height"))
+        {
+            
+            int index = 512 + 1024 * 512;
+            float height = snowHeightArray[index].x;
+            Debug.Log("Height of center column 512x512: " +  height);
+        }
+
+        if(GUI.Button(new Rect(10, 70, 50, 30), "Print Mass"))
+        {
+            int index = 512 + 1024 * 512;
+            float mass = snowHeightArray[index].y;
+            Debug.Log("Mass of center column 512x512: " + mass);
+        }
     }
 
     void DebugPrint()

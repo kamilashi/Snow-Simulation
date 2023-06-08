@@ -87,7 +87,8 @@ int2 posTocoords(float3 position)
 {
     float mapX = ((-position.x + planeSideSize / 2.0f - planeCenter.x) / (float) planeSideSize);
     float mapY = ((-position.z + planeSideSize / 2.0f - planeCenter.z) / (float) planeSideSize);
-    int2 coords = int2(round(mapX * texResolution), round(mapY * texResolution));
+    //int2 coords = int2(round(mapX * texResolution), round(mapY * texResolution));
+    int2 coords = int2(round(mapX * (texResolution - 1.0f)), round(mapY * (texResolution - 1.0f)));
     return coords;
 }
 
@@ -121,13 +122,14 @@ uint indexTextToArray(uint2 id)
 
 uint indexTexToGrid(uint3 id)
 {
+    float3 cell_id_ratio;
     uint3 cell_id;
-    cell_id.x =  ceil(((float) id.x) / (float) (texResolution));
-    cell_id.y =  ceil(((float) id.y) / (float) (texResolution));
+    cell_id_ratio.x = ((float) id.x / (float) (texResolution - 1));
+    cell_id_ratio.y = ((float) id.y / (float) (texResolution - 1));
     //cell_id.z = round((id.z) / (float) texResolution);
     
-    cell_id.x *= ceil(gridDimensions.x-1);
-    cell_id.z = cell_id.y * ceil(gridDimensions.z - 1);
+    cell_id.x = round(cell_id_ratio.x * (gridDimensions.x - 1));
+    cell_id.z = round(cell_id_ratio.y * (gridDimensions.z - 1));
     cell_id.y = id.z;
     
     uint index = cell_id.x + gridDimensions.x * cell_id.y + gridDimensions.y * gridDimensions.x * cell_id.z;
@@ -139,7 +141,7 @@ void GenerateHeight(uint3 id : SV_DispatchThreadID)
 {
     //time *= timeScale;
     
-    float2 uv = float2((float) id.x / (float) texResolution, (float) id.y / (float) texResolution);
+    float2 uv = float2((float) id.x / (float) (texResolution - 1), (float) id.y / (float) (texResolution - 1));
    // float2 uvOffset = float2(time, 0.0f);
     //float heightMap = SimpleNoise(uv - uvOffset, 5) * 2.0f;
     float heightMap = SimpleNoise(uv, 5) * 2.0f;
@@ -150,7 +152,8 @@ void GenerateHeight(uint3 id : SV_DispatchThreadID)
 [numthreads(32, 32, 1)]
 void InitSnowHeight(uint3 id : SV_DispatchThreadID)
 {
-    snowHeightBuffer[indexTextToArray(id.xy)].x = 1.0f * snowHeightFactor;
+    snowHeightBuffer[indexTextToArray(id.xy)].x = 1.0f * snowHeightFactor; // init column heights
+    //snowHeightBuffer[indexTextToArray(id.xy)].y = 0.0f; // init column masses
 }
 
 [numthreads(32, 32, 1)]
@@ -195,7 +198,7 @@ void PopulateGrid(uint3 id : SV_DispatchThreadID)
 [numthreads(10, 10, 10)]
 void ComputeForces(uint3 id : SV_DispatchThreadID)
 {
-    int index = id.x + gridDimensions.x * id.y + gridDimensions.y * gridDimensions.x * id.z;
+    int index = id.x + gridDimensions.x * (gridDimensions.y - id.y) + gridDimensions.y * gridDimensions.x * id.z; //iterate top to bottom
     Cell cell = cellGridBuffer[index];
     
     if (cell.isOccupied > -1)
@@ -227,6 +230,12 @@ void ComputeForces(uint3 id : SV_DispatchThreadID)
             upperCell = cellGridBuffer[upperCellI];
         }
 
+        float maxMass = snowHeightBuffer[indexTextToArray(coords)].y;
+        if (abs(m_total) > maxMass)
+       {
+        snowHeightBuffer[indexTextToArray(coords)].y = abs(m_total); // store the total masses per column
+        }
+        
         cell.force = float3(0, -m_total * G, 0);
         cellGridBuffer[index] = cell;
     }

@@ -51,7 +51,7 @@ Shader "Unlit/snow"
                 //uint index = (uint) floor((0.9-v.uv.x) * _texResolution) + floor((0.9 -v.uv.y) * _texResolution) *_texResolution;
 
 
-                //uint index = (uint) ceil(saturate(max(v.uv.x, 0.0)) *( _texResolution-1)) + ceil(saturate(min(v.uv.y, 1)) * (_texResolution-1)) *_texResolution;
+                //uint index = (uint) round(saturate(max(v.uv.x, 0.15)) *( _texResolution-1)) + round(saturate(min(v.uv.y, 0.85)) * (_texResolution-1)) *_texResolution;
                 uint index = (uint) round(v.uv.x *( _texResolution-1)) + round(v.uv.y * (_texResolution-1)) *_texResolution;
                 o.snowHeight = snowHeightBuffer[index].x;
                 float groundHeight = tex2Dlod(_GroundHeightMap, float4(v.uv, 0.0, 0.0)).x;
