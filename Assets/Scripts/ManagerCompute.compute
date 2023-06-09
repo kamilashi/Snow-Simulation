@@ -153,7 +153,7 @@ void GenerateHeight(uint3 id : SV_DispatchThreadID)
 void InitSnowHeight(uint3 id : SV_DispatchThreadID)
 {
     snowHeightBuffer[indexTextToArray(id.xy)].x = 1.0f * snowHeightFactor; // init column heights
-    //snowHeightBuffer[indexTextToArray(id.xy)].y = 0.0f; // init column masses
+    snowHeightBuffer[indexTextToArray(id.xy)].y = 0.0f; // init column masses
 }
 
 [numthreads(32, 32, 1)]
@@ -177,7 +177,7 @@ void PopulateGrid(uint3 id : SV_DispatchThreadID)
     if (cell.WSposition.y < groundLevel-cellSize)
     {
         cell.isOccupied = -2; //below ground
-        cell.density = 100.0f;
+        cell.density = 0.0f;
 
     }
     else if (cell.WSposition.y < snowLevel + cellSize)
@@ -201,7 +201,7 @@ void ComputeForces(uint3 id : SV_DispatchThreadID)
     int index = id.x + gridDimensions.x * (gridDimensions.y - id.y) + gridDimensions.y * gridDimensions.x * id.z; //iterate top to bottom
     Cell cell = cellGridBuffer[index];
     
-    if (cell.isOccupied > -1)
+    if (cell.isOccupied > -2)
     {
         float m_total = cell.mass;
         float3 upPos = cell.WSposition + float3(0, cellSize, 0);
@@ -287,7 +287,7 @@ void UpdateSnowHeight(uint3 id : SV_DispatchThreadID)
     int index = indexTexToGrid(id);
     Cell cell = cellGridBuffer[index];
     
-    if ((cell.density > 0.05f) && (cell.WSposition.y > groundLevel))
+    if ((cell.density > 0.0f) && (cell.isOccupied > -2))
     {
         snowHeightBuffer[indexTextToArray(coords)].x += cellSize;
     }
