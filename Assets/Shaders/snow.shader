@@ -31,32 +31,27 @@ Shader "Unlit/snow"
             {
                 float4 position : SV_POSITION;
                 float2 uv : TEXCOORD0;
-                float snowHeight : TEXCOORD1; //needs to be interpolated
             };
 
-            sampler2D _SnowHeightMap;
-            float4 _SnowHeightMap_ST;
-            float _SnowFactorMax;
             sampler2D _GroundHeightMap;
             float4 _GroundHeightMap_ST;
             float _OffsetX;
 
-            StructuredBuffer<float3> snowHeightBuffer;
+            StructuredBuffer<float3> snowHeightBufferOut;
 
             v2f vert (appdata v)
             {
                 v2f o;
-                //float snowHeight = tex2Dlod(_SnowHeightMap, float4(v.uv, 0.0, 0.0)).x;
                 int _texResolution = 1024;
                 //uint index = (uint) floor((0.9-v.uv.x) * _texResolution) + floor((0.9 -v.uv.y) * _texResolution) *_texResolution;
 
 
                 //uint index = (uint) round(saturate(max(v.uv.x, 0.15)) *( _texResolution-1)) + round(saturate(min(v.uv.y, 0.85)) * (_texResolution-1)) *_texResolution;
                 uint index = (uint) round(v.uv.x *( _texResolution-1)) + round(v.uv.y * (_texResolution-1)) *_texResolution;
-                o.snowHeight = snowHeightBuffer[index].x;
+                float snowHeight = snowHeightBufferOut[index].x;
                 float groundHeight = tex2Dlod(_GroundHeightMap, float4(v.uv, 0.0, 0.0)).x;
 
-                v.position.y += groundHeight + o.snowHeight;
+                v.position.y += groundHeight + snowHeight;
                 o.position = UnityObjectToClipPos(v.position);
                 o.uv = v.uv;
                 return o;
@@ -65,7 +60,8 @@ Shader "Unlit/snow"
             fixed4 frag (v2f i) : SV_Target
             {
                // fixed4 col = tex2D(_GroundHeightMap, i.uv);
-                fixed4 col = fixed4(i.uv,0,1);
+                //fixed4 col = fixed4(i.uv,0,1);
+                fixed4 col = fixed4(1,1,1,1);
                 
                 return col;
             }

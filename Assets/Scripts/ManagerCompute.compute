@@ -50,13 +50,19 @@ struct Collider
     float bottomSurfaceArea;
 };
 
+struct ColumnData
+{
+    float height;
+    float mass;
+};
+
 //RWStructuredBuffer<Particle> particleBuffer;
-shared RWStructuredBuffer<Cell> cellGridBuffer;
-shared RWStructuredBuffer<float3> snowHeightBuffer;
+ RWStructuredBuffer<Cell> cellGridBuffer;
+ shared RWStructuredBuffer<float3> snowHeightBuffer;
+ shared RWStructuredBuffer<float3> snowHeightBufferOut;
 
 shared RWTexture2D<float4> GroundHeightMap;
-//since you can't store values > 1 in a texture, the normalized height will be calculated here based on light exposure, when multiplied by a scaling snowHeightMaxFactor in the vertex shader, max value is controlled my a script
-shared RWTexture2D<float4> SnowHeightMap;
+//shared RWTexture2D<float4> SnowHeightMap;
 shared RWTexture2D<float4> Debug;
 
 int texResolution;
@@ -152,14 +158,21 @@ void GenerateHeight(uint3 id : SV_DispatchThreadID)
 [numthreads(32, 32, 1)]
 void InitSnowHeight(uint3 id : SV_DispatchThreadID)
 {
-    snowHeightBuffer[indexTextToArray(id.xy)].x = 1.0f * snowHeightFactor; // init column heights
-    snowHeightBuffer[indexTextToArray(id.xy)].y = 0.0f; // init column masses
+    //snowHeightBuffer[indexTextToArray(id.xy)].x = 1.0f * snowHeightFactor; // init column heights
+    //snowHeightBuffer[indexTextToArray(id.xy)].y = 0.0f; // init column masses
+    //snowHeightBuffer[indexTextToArray(id.xy)].z = 0.0f; // init column masses
+    
+    snowHeightBufferOut[indexTextToArray(id.xy)].x = 1.0f * snowHeightFactor; // init column heights
+    snowHeightBufferOut[indexTextToArray(id.xy)].y = 0.0f; // init column masses
+    snowHeightBufferOut[indexTextToArray(id.xy)].z = 0.0f; // init column masses
 }
 
 [numthreads(32, 32, 1)]
 void ClearSnowHeight(uint3 id : SV_DispatchThreadID)
 {
-    snowHeightBuffer[indexTextToArray(id.xy)].y = 0.0f; // clear mass
+    //snowHeightBuffer[indexTextToArray(id.xy)].y = 0.0f; // clear mass
+    snowHeightBufferOut[indexTextToArray(id.xy)].y = 0.0f; // clear mass
+    //snowHeightBuffer[indexTextToArray(id.xy)].x = 0.0f; // clear height
 }
 
 //called every update
@@ -171,7 +184,7 @@ void PopulateGrid(uint3 id : SV_DispatchThreadID)
     cell.WSposition = (float3((float) id.x + (float) cellSize / 4.0f, (float) id.y + (float) cellSize / 4.0f, (float) id.z + (float) cellSize / 4.0f) + (gridCenter - (float3) gridDimensions * 0.5f)) * cellSize;
     int2 coords = posTocoords(cell.WSposition);
     float groundLevel = GroundHeightMap[coords].x + planeCenter.y;
-    float snowLevel = groundLevel + snowHeightBuffer[indexTextToArray(coords)].x;
+    float snowLevel = groundLevel + snowHeightBufferOut[indexTextToArray(coords)].x;
     
     if (cell.WSposition.y < groundLevel )
     {
@@ -184,8 +197,8 @@ void PopulateGrid(uint3 id : SV_DispatchThreadID)
     {
         cell.isOccupied = 1; //below snow surface but above ground - inside snow pack
         cell.mass = cell.density * V_cell;
-        float currentColumnMass = snowHeightBuffer[indexTextToArray(coords)].y;
-        snowHeightBuffer[indexTextToArray(coords)].y = currentColumnMass + cell.mass;
+        //float currentColumnMass = (float) snowHeightBufferOut[indexTextToArray(coords)].y;
+        //snowHeightBuffer[indexTextToArray(coords)].y = (float) (currentColumnMass + cell.mass);
     }
     else
     {
@@ -219,7 +232,7 @@ void ComputeForces(uint3 id : SV_DispatchThreadID)
     
         int2 coords = posTocoords(cell.WSposition);
         float groundLevel = GroundHeightMap[coords].x + planeCenter.y;
-        float snowLevel = groundLevel + snowHeightBuffer[indexTextToArray(coords)].x;
+        float snowLevel = groundLevel + snowHeightBufferOut[indexTextToArray(coords)].x;
     
         while (upperCell.isOccupied >= -1)
         {
@@ -270,8 +283,11 @@ void ApplyForces(uint3 id : SV_DispatchThreadID)
     //    float m_tot = cell.mass + from_cell.mass;
         float Vnew_to_Vold = max((cellSize - x), 0) / (float) (cellSize);
         cell.density = cell.density / (float) Vnew_to_Vold;
-        float currentHeight = snowHeightBuffer[indexTextToArray(posTocoords(cell.WSposition))].x;
-        snowHeightBuffer[indexTextToArray(posTocoords(cell.WSposition))].x = currentHeight - x;
+        
+        float3 cellPosProjection = float3(cell.WSposition.x, 0.0f, cell.WSposition.z);
+        
+        float currentHeight = (float) snowHeightBufferOut[indexTextToArray(posTocoords(cellPosProjection))].x;
+        snowHeightBuffer[indexTextToArray(posTocoords(cellPosProjection))].x = currentHeight - x;
         
         //if (from_cell.mass != 0)
         //{
@@ -289,8 +305,12 @@ void ApplyForces(uint3 id : SV_DispatchThreadID)
 [numthreads(32, 32, 1)]
 void UpdateSnowHeight(uint3 id : SV_DispatchThreadID)
 {
+    int2 coords = id.xy;
     
-    //int2 coords = id.xy;
+    float3 snowColumnTotals = snowHeightBuffer[indexTextToArray(coords)];
+    snowHeightBufferOut[indexTextToArray(coords)].x = snowColumnTotals;
+    
+    
     //float groundLevel = GroundHeightMap[coords].x + planeCenter.y;
     
     //int index = indexTexToGrid(id);
@@ -298,7 +318,7 @@ void UpdateSnowHeight(uint3 id : SV_DispatchThreadID)
     
     //if ((cell.density > 0.0f) && (cell.isOccupied > -2))
     //{
-    //    snowHeightBuffer[indexTextToArray(coords)].x += cellSize;
+    //snowHeightBuffer[indexTextToArray(index)].x = currentHeight;
     //}
 }
 
