@@ -342,7 +342,7 @@ MonoBehaviour:
   cellSize: 0.2
   timeScale: 0
   simulationSpeed: 0.5
-  snowHeightScale: 3.5
+  snowHeightScale: 4
   groundMaterial: {fileID: 2100000, guid: dc9a592f2605d0c4588833d419cc81df, type: 2}
   snowMaterial: {fileID: 2100000, guid: 1a7c1f1c2f1555e409f74a848abbac77, type: 2}
   debugMaterial: {fileID: 2100000, guid: bf39f3fa15e6ea34fae8093b5e8f202c, type: 2}
