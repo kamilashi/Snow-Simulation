@@ -60,7 +60,6 @@ struct ColumnData
 //RWStructuredBuffer<Particle> particleBuffer;
  RWStructuredBuffer<Cell> cellGridBuffer;
  RWStructuredBuffer<ColumnData> snowTotalsBuffer;
- RWStructuredBuffer<ColumnData> snowTotalsBufferOut;
 
 shared RWTexture2D<float4> GroundHeightMap;
 //shared RWTexture2D<float4> SnowHeightMap;
@@ -162,15 +161,12 @@ void InitSnowHeight(uint3 id : SV_DispatchThreadID)
     snowTotalsBuffer[indexTextToArray(id.xy)].height = 1.0f * snowHeightFactor; // init column heights
     snowTotalsBuffer[indexTextToArray(id.xy)].mass = 0.0f; // init column masses
     
-    //snowTotalsBufferOut[indexTextToArray(id.xy)].height = 1.0f * snowHeightFactor; // init column heights
-    //snowTotalsBufferOut[indexTextToArray(id.xy)].mass = 0.0f; // init column masses
 }
 
 [numthreads(32, 32, 1)]
 void ClearSnowHeight(uint3 id : SV_DispatchThreadID)
 {
     snowTotalsBuffer[indexTextToArray(id.xy)].mass = 0.0f; // clear mass
-    //snowTotalsBufferOut[indexTextToArray(id.xy)].mass = 0.0f; // clear mass
 }
 
 //called every update
@@ -274,14 +270,6 @@ void ApplyForces(uint3 id : SV_DispatchThreadID)
         float Vnew_to_Vold = max((cellSize - x), 0) / (float) (cellSize);
         cell.density = cell.density / (float) Vnew_to_Vold;
         cell.indentAmount = x;
-        //float3 cellPosProjection = float3(cell.WSposition.x, 0.0f, cell.WSposition.z);
-        
-       // uint bufferIndex = (uint) indexTextToArray(posTocoords(cellPosProjection));
-        
-        //ColumnData snowColumnTotals = snowTotalsBuffer[bufferIndex];
-        //snowColumnTotals.height -= x;
-        //snowTotalsBuffer[bufferIndex] = snowColumnTotals;
-        
     }
     cellGridBuffer[index] = cell;
 }
@@ -301,18 +289,6 @@ void UpdateSnowHeight(uint3 id : SV_DispatchThreadID)
     snowColumnTotals.height -= indentAmout;
     
     snowTotalsBuffer[bufferIndex] = snowColumnTotals;
-    //snowTotalsBufferOut[bufferIndex] = snowColumnTotals;
-    
-    
-    //float groundLevel = GroundHeightMap[coords].x + planeCenter.y;
-    
-    //int index = indexTexToGrid(id);
-    //Cell cell = cellGridBuffer[index];
-    
-    //if ((cell.density > 0.0f) && (cell.isOccupied > -2))
-    //{
-    //snowHeightBuffer[indexTextToArray(index)].x = currentHeight;
-    //}
 }
 
 [numthreads(10, 10, 10)]

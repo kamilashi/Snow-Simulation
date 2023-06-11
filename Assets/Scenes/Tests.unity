@@ -340,7 +340,7 @@ MonoBehaviour:
   toggle: 0
   gridCenter: {x: 0, y: 0, z: 0}
   cellSize: 0.2
-  timeScale: 1
+  timeScale: 0.1
   simulationSpeed: 0.5
   snowHeightScale: 5
   groundMaterial: {fileID: 2100000, guid: dc9a592f2605d0c4588833d419cc81df, type: 2}
