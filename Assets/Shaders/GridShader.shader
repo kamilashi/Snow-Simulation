@@ -53,6 +53,7 @@ Shader "Custom/GridShader"
 			float3 WSposition;
 			float3 force;
 			float density;
+			float indentAmount;
 			float hardness;
 			float temperature;
 			float grainSize;
