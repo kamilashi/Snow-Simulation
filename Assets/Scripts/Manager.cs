@@ -15,18 +15,18 @@ public class Manager : MonoBehaviour
     public bool showSnowParticles = true;
     public bool toggle = false;
     public Vector3 gridCenter;
-    public float cellSize;
+    public float cellSize; // m
     private float planeSideSize;
 
-    [Range(0.0f, 5.0f)]
+    [Range(0.0f, 100.0f)]
     public float timeScale = 0.5f;
     [Range(0.0f, 1.0f)]
     public float simulationSpeed = 0.5f;
-    [Range(0.0f, 10.0f)]
+    [Range(0.0f, 5.0f)]
     public float snowHeightScale = 5.0f;
     private float time = 0.0f; 
-    private float maxSnowDensity = 1.0f;
-    private float k_springCoefficient = 2.80f;
+    private float maxSnowDensity = 800.0f; //kg/m^3
+    //private float k_springCoefficient = 400000000; //N/m^3  //2.8f;
 
     private int gridWidth;
     private int gridHeight;
@@ -55,11 +55,11 @@ public class Manager : MonoBehaviour
         public Cell(int gridX, int gridY, int gridZ, int cubeIndex)
         {
             gridIndex = new Vector3(gridX, gridY, gridZ);
-            WSposition =  Vector3.zero;
+            WSposition =  Vector3.zero; //m
             force = Vector3.zero;
-            density = 0.2f;
+            density = 120.0f; // kg/m^3
             indentAmount = 0.0f;
-            hardness = 0.3f;
+            hardness = 0.0f;    // kg/(m*s^2)
             temperature = -3.0f;
             mass = 0.0f;
             grainSize = 0.2f;
@@ -79,12 +79,6 @@ public class Manager : MonoBehaviour
     {
         public float height;
         public float mass;
-
-        //public ColumnData(int )
-        //{
-        //    height = 0.0f;
-        //    mass = 0.0f;
-        //}
     };
 
     public struct Particle
@@ -290,8 +284,8 @@ public class Manager : MonoBehaviour
         shader.SetInts( "gridDimensions", gridDimensions); //in cell numbers! 
         shader.SetFloat("cellSize", cellSize);
         shader.SetFloat("maxSnowDensity", maxSnowDensity);
-        shader.SetFloat("k_springCoefficient", k_springCoefficient); 
-        shader.SetFloat("V_cell", cellSize* cellSize* cellSize);
+        //shader.SetFloat("k_springCoefficient", k_springCoefficient); 
+        shader.SetFloat("V_cell", cellSize* cellSize* cellSize); // m^3
         float[] gridC = new float[] { gridCenter.x, gridCenter.y, gridCenter.z };
         shader.SetFloats("gridCenter", gridC);
         shader.SetInt("cellBufferLength", cellCount);
@@ -307,6 +301,7 @@ public class Manager : MonoBehaviour
 
         GridMaterial.SetBuffer("cellGridBuffer", cellGridBuffer);
         GridMaterial.SetFloat("_CellSize", cellSize);
+        GridMaterial.SetFloat("_MaxSnowDensity", maxSnowDensity);
 
         gridArgs = new uint[] { cubeMesh.GetIndexCount(0), (uint)cellCount, 0, 0, 0 };
         gridArgsBuffer = new ComputeBuffer(1, gridArgs.Length * sizeof(uint), ComputeBufferType.IndirectArguments);

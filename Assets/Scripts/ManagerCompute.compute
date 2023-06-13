@@ -83,7 +83,7 @@ float snowHeightFactor;
 float dissipationAmount = 0.95f;
 int3 particlesPerAxis;
 
-float k_springCoefficient;
+//float k_springCoefficient;
 float V_cell;
 
 float maxSnowDensity;
@@ -151,8 +151,8 @@ void GenerateHeight(uint3 id : SV_DispatchThreadID)
    // float2 uvOffset = float2(time, 0.0f);
     //float heightMap = SimpleNoise(uv - uvOffset, 5) * 2.0f;
     
-    //float heightMap = SimpleNoise(uv, 5) * 2.0f;
-    float heightMap = 1.0f;
+    float heightMap = SimpleNoise(uv, 5) * 2.0f;
+    //float heightMap = 1.0f;
     GroundHeightMap[id.xy] = float4(heightMap.xxx, 1.0f);
     Debug[id.xy] = float4(heightMap.xxx, 1.0f);
 }
@@ -186,11 +186,14 @@ void PopulateGrid(uint3 id : SV_DispatchThreadID)
     {
         cell.isOccupied = -2; //below ground
         cell.density = 100.0f;
-
     }
     else if (cell.WSposition.y < snowLevel )
     {
         cell.isOccupied = 1; //below snow surface but above ground - inside snow pack
+        float density = cell.density;
+        cell.hardness = (density * density * density * 0.001 + density * density * 0.01 +  density * 0.1) * 10; /** 10000.0f;*/
+        //cell.hardness = density * density * density * 3.55;
+
     }
     else
     {
@@ -198,9 +201,7 @@ void PopulateGrid(uint3 id : SV_DispatchThreadID)
         cell.density = 0.0f; //air
     }
     
-    
     cell.mass = cell.density * V_cell;
-    
     cellGridBuffer[index] = cell;
 }
 
@@ -214,9 +215,13 @@ void ComputeForces(uint3 id : SV_DispatchThreadID)
     {
         float m_total = cell.mass;
         float3 upPos = cell.WSposition + float3(0, cellSize, 0);
+        
+        //float3 appliedForce = float3(0, -100000.0f, 0);
+        float3 appliedForce = float3(0, 0.0f, 0);
+        
         if (!isWithinGrid(upPos))
         {
-            cell.force = float3(0, -m_total * G, 0);
+            cell.force = float3(0, -m_total * G, 0) + appliedForce;
             cellGridBuffer[index] = cell;
             return;
         }
@@ -239,7 +244,7 @@ void ComputeForces(uint3 id : SV_DispatchThreadID)
             upperCell = cellGridBuffer[upperCellI];
         }
         
-        cell.force = float3(0, -m_total * G, 0);
+        cell.force = float3(0, -m_total * G, 0) + appliedForce;
         cellGridBuffer[index] = cell;
     }
 }
@@ -253,11 +258,14 @@ void ApplyForces(uint3 id : SV_DispatchThreadID)
     float force_y = cell.force.y;
     float3 force_dir = float3(0, 1, 0) * ((float) force_y / (float) abs(force_y));
     
-    float x = max(( abs(force_y) - cell.hardness), 0.0f) / (float) k_springCoefficient; // any force that is lower than the snows 
+    float density = cell.density;
+    float k_springCoefficient = pow(density, 7) * pow(0.1f, 8);
+    //float x = max(( abs(force_y) - cell.hardness), 0.0f) / (float) k_springCoefficient; // any force that is lower than the snows 
+    float x =  abs(force_y)  / (float) k_springCoefficient; // any force that is lower than the snows 
     x *= deltaTime * timeScale;
     
     
-    if ((x > 0.0) && (cell.density < maxSnowDensity) && (cell.isOccupied > -1))
+    if ((x > 0.0) /*&& (cell.density < maxSnowDensity)*/ && (cell.isOccupied > -1))
     {
         float cell_delimeter = max((cellSize - x), 0.0f);
         float V_lower = cellSize * cellSize * cell_delimeter;

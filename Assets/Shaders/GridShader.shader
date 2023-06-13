@@ -33,6 +33,8 @@ Shader "Custom/GridShader"
 		float _CellSize;
 		float _Metallic;
 
+		float _MaxSnowDensity;
+
 		#pragma surface surf Standard vertex:vert addshadow fullforwardshadows alpha:fade
 		#pragma instancing_options procedural:setup
 
@@ -100,16 +102,16 @@ Shader "Custom/GridShader"
 				if (content > -1) {
 					_Color.r = 0.0f; //cell.mass;
 					_Color.g = 0.0f; //content is the index of the particle that the cell is occupied by
-					_Color.b = cell.density;
+					_Color.b = (float)cell.density/ (float)_MaxSnowDensity;
 					_Color.a = 1.0f;
 				}
 			}
 
 			if ((_Show_Force)) {
-				float3 force = (cell.force );
-				_Color.r = force.x;
-				_Color.g = force.y;
-				_Color.b = force.z;
+				float3 force = (cell.force);
+				_Color.r = (force.x) / cell.hardness;
+				_Color.g = (force.y) / cell.hardness;
+				_Color.b = (force.z) / cell.hardness;
 
 				_Color.a = 1.0f * saturate(length(force));
 			}
