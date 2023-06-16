@@ -340,9 +340,12 @@ MonoBehaviour:
   toggle: 0
   gridCenter: {x: 0, y: 0, z: 0}
   cellSize: 0.2
-  timeScale: 0.0001
-  simulationSpeed: 0.5
-  snowHeightScale: 5
+  timeScale: 0
+  simulationSpeed: 0.3
+  snowAddedHeight: 0.5
+  freshSnowDensity: 0.06
+  maxSnowDensity: 1
+  temperature: -3
   groundMaterial: {fileID: 2100000, guid: dc9a592f2605d0c4588833d419cc81df, type: 2}
   snowMaterial: {fileID: 2100000, guid: 1a7c1f1c2f1555e409f74a848abbac77, type: 2}
   debugMaterial: {fileID: 2100000, guid: bf39f3fa15e6ea34fae8093b5e8f202c, type: 2}

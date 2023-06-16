@@ -60,6 +60,7 @@ Shader "Custom/GridShader"
 			float temperature;
 			float grainSize;
 			float mass;
+			float massOver;
 			int index;
 			int isOccupied; //TO-DO - enum here
 		};

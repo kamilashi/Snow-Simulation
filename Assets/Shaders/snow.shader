@@ -67,8 +67,6 @@ Shader "Unlit/snow"
 
             fixed4 frag (v2f i) : SV_Target
             {
-               // fixed4 col = tex2D(_GroundHeightMap, i.uv);
-                //fixed4 col = fixed4(i.uv,0,1);
                 fixed4 col = fixed4(1,1,1,1);
                 
                 return col;
