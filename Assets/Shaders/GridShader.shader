@@ -6,7 +6,7 @@ Shader "Custom/GridShader"
 		[Toggle(SHOW_FORCE)] _Show_Force("Show Force", Float) = 0
 		[Toggle(SHOW_SNOWPARAMS)] _Show_SnowParams("Show Snow Paramt", Float) = 0
 		[Toggle(SHOW_INDEXES)] _Show_Indexes("Show Indexes", Float) = 0
-		//_HeightMap("Albedo (RGB)", 2D) = "white" {}
+		//_MaxDensity("Max Density", Float) = 60
 	}
 
 	SubShader{
@@ -34,6 +34,7 @@ Shader "Custom/GridShader"
 		float _Metallic;
 
 		float _MaxSnowDensity;
+		//float _MaxDensity;
 
 		#pragma surface surf Standard vertex:vert addshadow fullforwardshadows alpha:fade
 		#pragma instancing_options procedural:setup
@@ -103,7 +104,7 @@ Shader "Custom/GridShader"
 				if (content > -1) {
 					_Color.r = 0.0f; //cell.mass;
 					_Color.g = 0.0f; //content is the index of the particle that the cell is occupied by
-					_Color.b = (float)cell.density/ (float)_MaxSnowDensity;
+					_Color.b = ( (float)cell.density/ (float)_MaxSnowDensity)*5.0f;
 					_Color.a = 1.0f;
 				}
 			}
@@ -125,14 +126,13 @@ Shader "Custom/GridShader"
 
 				_Color.a = 0.5f;
 			}
-			
 		#endif
 	}
 
 	 void surf(Input IN, inout SurfaceOutputStandard o) {
 		//fixed4 c = _Color;
-		o.Metallic = 0;
-		o.Smoothness = 1;
+		o.Metallic = -1;
+		o.Smoothness = 0;
 		//float heightSample = tex2D(_HeightMap, IN.uv);
 		o.Albedo = _Color.rgb;
 		o.Alpha = _Color.a;

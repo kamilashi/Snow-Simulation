@@ -18,14 +18,24 @@ public class Manager : MonoBehaviour
     public float cellSize; // m
     private float planeSideSize;
 
-    [Range(0.0f, 100.0f)]
+    [Range(0.0f, 1000.0f)]
     public float timeScale = 0.5f;
     [Range(0.0f, 1.0f)]
     public float simulationSpeed = 0.5f;
-    [Range(0.0f, 5.0f)]
+    [Range(0.0f, 8.0f)]
     public float snowAddedHeight = 0.5f;
-    public float freshSnowDensity = 0.06f; //kg/m^3
-    public float maxSnowDensity = 1.0f; //kg/m^3
+    public float freshSnowDensity = 20f; //kg/m^3
+    public float maxSnowDensity = 30.0f; //kg/m^3
+
+    [Range(0.0f, 10.0f)]
+    public float h_d_p = 2.24f;
+    [Range(0.0f, 10.0f)]
+    public float h_c_p = 2.0f;
+    [Range(0.0f, 10.0f)]
+    public float k_d_p = 2.56f;
+    [Range(0.0f, 10.0f)]
+    public float k_c_p = 0.54f; 
+
     [Range(-20.0f, -1.0f)]
     public float temperature = -3.0f; //kg/m^3
     private float time = 0.0f; 
@@ -84,6 +94,7 @@ public class Manager : MonoBehaviour
     {
         public float height;
         public float mass;
+        public float mass_temp;
         public float averageDensity;
     };
 
@@ -112,6 +123,7 @@ public class Manager : MonoBehaviour
 
     int SIZE_CELL = 5 * sizeof(int) + 13 * sizeof(float);
     int SIZE_PARTICLE = 7 * sizeof(float);
+    int SIZE_COLUMNDATA = 4 * sizeof(float);
     Cell[] cellGridArray;
     Particle[] particleArray;
     ColumnData[] snowTotalsArray; // x for height, y for mass...
@@ -196,7 +208,7 @@ public class Manager : MonoBehaviour
     private void GenerateHeightMap()
     {
         snowTotalsArray = new ColumnData[snowTotalsArraySize];
-        snowTotalsBuffer = new ComputeBuffer(snowTotalsArraySize, 3 * sizeof(float));
+        snowTotalsBuffer = new ComputeBuffer(snowTotalsArraySize, SIZE_COLUMNDATA);
         snowTotalsBuffer.SetData(snowTotalsArray);
         
 
@@ -292,6 +304,11 @@ public class Manager : MonoBehaviour
         shader.SetFloat("maxSnowDensity", maxSnowDensity);
         shader.SetFloat("freshSnowDensity", freshSnowDensity);
         shader.SetFloat("temperature", temperature);
+        
+        shader.SetFloat("h_d_p", h_d_p);
+        shader.SetFloat("h_c_p", h_c_p);
+        shader.SetFloat("k_d_p", k_d_p);
+        shader.SetFloat("k_c_p", k_c_p);
 
         //shader.SetFloat("k_springCoefficient", k_springCoefficient); 
         shader.SetFloat("V_cell", cellSize* cellSize* cellSize); // m^3
@@ -341,7 +358,13 @@ public class Manager : MonoBehaviour
         snowAddedHeight = snowAddedHeight - snowAddedHeight % cellSize;
         shader.SetFloat("snowAddedHeight", snowAddedHeight); 
         shader.SetFloat("freshSnowDensity", freshSnowDensity); 
-        shader.SetFloat("temperature", temperature); 
+        shader.SetFloat("temperature", temperature);
+        shader.SetFloat("maxSnowDensity", maxSnowDensity);
+        shader.SetFloat("h_d_p", h_d_p);
+        shader.SetFloat("h_c_p", h_c_p);
+        shader.SetFloat("k_d_p", k_d_p);
+        shader.SetFloat("k_c_p", k_c_p);
+        GridMaterial.SetFloat("maxSnowDensity", maxSnowDensity);
 
         shader.Dispatch(kernelClearHeight, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX), Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY), 1);
 
@@ -352,15 +375,18 @@ public class Manager : MonoBehaviour
 
 
 
-        shader.Dispatch(kernelComputeForces, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),
-                                              Mathf.CeilToInt((float)gridHeight / (float)gridTthreadGroupSizeY),
-                                              Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
+        //shader.Dispatch(kernelComputeForces, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),
+        //                                      Mathf.CeilToInt((float)gridHeight / (float)gridTthreadGroupSizeY),
+        //                                      Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
+        
+        shader.Dispatch(kernelComputeForces, 50, 1, 50);
+        shader.Dispatch(kernelApplyForces, 50, 1, 50);
 
 
+        //shader.Dispatch(kernelApplyForces, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),
+        //                                     Mathf.CeilToInt((float)gridHeight / (float)gridTthreadGroupSizeY),
+        //                                      Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
 
-        shader.Dispatch(kernelApplyForces, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),
-                                             Mathf.CeilToInt((float)gridHeight / (float)gridTthreadGroupSizeY),
-                                              Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
 
 
         shader.Dispatch(kernelUpdateSnowTotals, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX),
@@ -368,7 +394,6 @@ public class Manager : MonoBehaviour
                                               gridHeight);
 
         snowTotalsBuffer.GetData(snowTotalsArray);
-
 
 
         //no lagrangian particles for now:
@@ -399,9 +424,9 @@ public class Manager : MonoBehaviour
 
 
         //shader.GetKernelThreadGroupSizes(kerneClearGrid, out gridThreadGroupSizeX, out gridTthreadGroupSizeY, out gridThreadGroupSizeZ);
-        //shader.Dispatch(kerneClearGrid, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),
-        //                                   Mathf.CeilToInt((float)gridHeight / (float)gridTthreadGroupSizeY),
-        //                                   Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
+        shader.Dispatch(kerneClearGrid, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),
+                                          Mathf.CeilToInt((float)gridHeight / (float)gridTthreadGroupSizeY),
+                                           Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
 
         //if(showSnowParticles)
         //{

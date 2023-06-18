@@ -41,6 +41,7 @@ struct ColumnData
 {
     float height;
     float mass;
+    float mass_temp;
     float averageDensity;
 };
 
@@ -74,6 +75,11 @@ float temperature;
 float maxSnowDensity;
 float freshSnowDensity;
 
+float h_d_p;
+float h_c_p;
+float k_d_p;
+float k_c_p;
+
 
 int2 posTocoords(float3 position)
 {
@@ -103,6 +109,16 @@ bool isWithinGrid(float3 position)
         return false;
     }
     return true;
+}
+
+uint3 clipCellId(uint3 id)
+{
+    uint3 index_3d = id;
+    index_3d.x = min(max(index_3d.x, 0), gridDimensions.x - 1);
+    index_3d.y = min(max(index_3d.y, 0), gridDimensions.y - 1);
+    index_3d.z = min(max(index_3d.z, 0), gridDimensions.z - 1);
+    
+    return index_3d;
 }
 
 uint indexTextToArray(uint2 id)
@@ -156,6 +172,7 @@ void InitSnowHeight(uint3 id : SV_DispatchThreadID)
 void ClearSnowHeight(uint3 id : SV_DispatchThreadID)
 {
     snowTotalsBuffer[indexTextToArray(id.xy)].mass = 0.0f; // clear mass
+    snowTotalsBuffer[indexTextToArray(id.xy)].mass_temp = 0.0f; // clear mass
 }
 
 [numthreads(32, 32, 1)]
@@ -176,12 +193,12 @@ void PopulateGrid(uint3 id : SV_DispatchThreadID)
     float groundLevel = GroundHeightMap[coords].x + planeCenter.y;
     float snowLevel = groundLevel + snowTotalsBuffer[indexTextToArray(coords)].height;
     
-    if (cell.WSposition.y < groundLevel )
+    if (cell.WSposition.y < groundLevel + cellSize * 0.5f)
     {
         cell.isOccupied = -2; //below ground
         cell.density = 100.0f;
     }
-    else if (cell.WSposition.y < snowLevel )
+    else if (cell.WSposition.y < snowLevel + cellSize * 0.5f)
     {
         if (cell.isOccupied == -1) //if new snow is added
         {
@@ -189,8 +206,9 @@ void PopulateGrid(uint3 id : SV_DispatchThreadID)
         }
         cell.isOccupied = 1; //below snow surface but above ground - inside snow pack
         float density = cell.density;
-       // cell.hardness = (density * density * density * 0.001 + density * density * 0.01 +  density * 0.1) * 10; /** 10000.0f;*/
-        cell.hardness = density * density * density * 3.55;
+        //cell.hardness = (density * density * density * 0.001 + density * density * 0.01 +  density * 0.1) * 10; /** 10000.0f;*/
+        //cell.hardness = pow(density, 3.99f) * 3.55;
+        cell.hardness = pow(density, h_d_p) * pow(0.1, h_c_p);
     }
     else
     {
@@ -203,10 +221,12 @@ void PopulateGrid(uint3 id : SV_DispatchThreadID)
     cellGridBuffer[index] = cell;
 }
 
-[numthreads(10, 10, 10)]
+[numthreads(1, 50, 1)]
 void ComputeForces(uint3 id : SV_DispatchThreadID)
 {
-    int index = id.x + gridDimensions.x * (gridDimensions.y -1 - id.y) + gridDimensions.y * gridDimensions.x * id.z; //iterate top to bottom
+    uint3 id_clipped = clipCellId(id);
+    //int index = id.x + gridDimensions.x * (gridDimensions.y -1 - id.y) + gridDimensions.y * gridDimensions.x * id.z; //iterate top to bottom
+    int index = id_clipped.x + gridDimensions.x * (gridDimensions.y - 1 - id_clipped.y) + gridDimensions.y * gridDimensions.x * id_clipped.z; //iterate top to bottom
     Cell cell = cellGridBuffer[index];
     
     if (cell.isOccupied > -2)
@@ -226,32 +246,20 @@ void ComputeForces(uint3 id : SV_DispatchThreadID)
         }
         int upperCellI = getGridIndexFromPosition(upPos);
         Cell upperCell = cellGridBuffer[upperCellI];
-    
-        //int2 coords = posTocoords(cell.WSposition);
-        //float groundLevel = GroundHeightMap[coords].x + planeCenter.y;
-        //float snowLevel = groundLevel + snowTotalsBuffer[indexTextToArray(coords)].height;
-    
-        //while (upperCell.isOccupied > -2)
-       // {
-            //m_total += upperCell.mass;
-            //upPos = upperCell.WSposition + float3(0, cellSize, 0);
-            //if (!isWithinGrid(upPos))
-            //{
-            //    break;
-            //}
-            //upperCellI = getGridIndexFromPosition(upPos);
-            //upperCell = cellGridBuffer[upperCellI];
-       // }
         
         cell.massOver = upperCell.massOver + cell.mass;
         cell.force = float3(0, -cell.massOver * G, 0) + appliedForce;
         cellGridBuffer[index] = cell;
     }
 }
-[numthreads(10, 10, 10)]
+
+[numthreads(1, 50, 1)]
 void ApplyForces(uint3 id : SV_DispatchThreadID)
 {
-    int index = id.x + gridDimensions.x * max((gridDimensions.y - 1 - id.y), 0) + gridDimensions.y * gridDimensions.x * id.z;
+    uint3 id_clipped = clipCellId(id);
+    //int index = id.x + gridDimensions.x * (gridDimensions.y - 1 - id.y) + gridDimensions.y * gridDimensions.x * id.z;
+    int index = id_clipped.x + gridDimensions.x * ( id_clipped.y) + gridDimensions.y * gridDimensions.x * id_clipped.z; //iterate top to bottom
+    
     Cell cell = cellGridBuffer[index];
     cell.indentAmount = 0.0f;
 
@@ -259,13 +267,13 @@ void ApplyForces(uint3 id : SV_DispatchThreadID)
     float3 force_dir = float3(0, 1, 0) * ((float) force_y / (float) abs(force_y));
     
     float density = cell.density;
-    float k_springCoefficient = pow(density, 7) * pow(0.1f, 8);
-    //float x = max(( abs(force_y) - cell.hardness), 0.0f) / (float) k_springCoefficient; // any force that is lower than the snows 
+    float k_springCoefficient = pow(density, k_d_p) * pow(0.1f, k_c_p);
     float x =  abs(force_y)  / (float) k_springCoefficient; // alternative?
     x *= deltaTime * timeScale;
+    x = min(x, 0.99 * cellSize);
     
     
-    if ((x > 0.0) /*&& (cell.density < maxSnowDensity)*/ && (cell.isOccupied > -1))
+    if ((x > 0.0) && /*(cell.density < maxSnowDensity) &&*/ (cell.isOccupied > -1))
     {
         float cell_delimeter = max((cellSize - x), 0.0f);
         float V_lower = cellSize * cellSize * cell_delimeter;
@@ -311,7 +319,11 @@ void UpdateSnowTotals(uint3 id : SV_DispatchThreadID)
     snowColumnTotals.height -= indentAmout;
     if (cell.isOccupied > -1)
     {
-        snowColumnTotals.mass += cell.mass;
+        snowColumnTotals.mass_temp += cell.mass;
+    }
+    else if (cell.isOccupied == -2)
+    {
+        snowColumnTotals.mass = snowColumnTotals.mass_temp;
     }
     
     snowTotalsBuffer[bufferIndex] = snowColumnTotals;
@@ -323,6 +335,6 @@ void ClearGrid(uint3 id : SV_DispatchThreadID)
     int index = id.x + gridDimensions.x * id.y + gridDimensions.y * gridDimensions.x * id.z;
     Cell cell = cellGridBuffer[index];
     
-    //cell.force = float3(0.0f, 0.0f, 0.0f);
+    cell.indentAmount = 0.0;
     cellGridBuffer[index] = cell;
 }
