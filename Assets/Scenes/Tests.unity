@@ -340,11 +340,10 @@ MonoBehaviour:
   toggle: 0
   gridCenter: {x: 0, y: 0, z: 0}
   cellSize: 0.2
-  timeScale: 0.0001
-  simulationSpeed: 0.3
+  timeScale: 0.001
   snowAddedHeight: 7
   freshSnowDensity: 20
-  maxSnowDensity: 65
+  maxSnowDensity: 110
   h_d_p: 2.24
   h_c_p: 2
   k_d_p: 2.56

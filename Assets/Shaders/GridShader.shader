@@ -104,18 +104,18 @@ Shader "Custom/GridShader"
 				if (content > -1) {
 					_Color.r = 0.0f; //cell.mass;
 					_Color.g = 0.0f; //content is the index of the particle that the cell is occupied by
-					_Color.b = ( (float)cell.density/ (float)_MaxSnowDensity)*5.0f;
+					_Color.b = ( (float)cell.density/ (float)_MaxSnowDensity)*1.0f;
 					_Color.a = 1.0f;
 				}
 			}
 
 			if ((_Show_Force)) {
 				float3 force = (cell.force);
-				_Color.r = (force.x) / cell.hardness;
-				_Color.g = (force.y) / cell.hardness;
-				_Color.b = (force.z) / cell.hardness;
+				_Color.r = max(abs(force.x) - cell.hardness, 0.0f) / (float) force.x;
+				_Color.g = max(abs(force.y) - cell.hardness, 0.0f) / (float) force.y;
+				_Color.b = max(abs(force.z) - cell.hardness, 0.0f) / (float) force.z;
 
-				_Color.a = 1.0f * saturate(length(force));
+				_Color.a =  saturate(10.0f * length(force));
 			}
 			
 			if ((_Show_Indexes)) {

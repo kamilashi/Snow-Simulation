@@ -65,7 +65,6 @@ float deltaTime;
 float simulationSpeed;
 float timeScale;
 
-float dissipationAmount = 0.95f;
 int3 particlesPerAxis;
 
 float V_cell;
@@ -266,14 +265,21 @@ void ApplyForces(uint3 id : SV_DispatchThreadID)
     float force_y = cell.force.y;
     float3 force_dir = float3(0, 1, 0) * ((float) force_y / (float) abs(force_y));
     
+    
+    if (cell.density >= maxSnowDensity){
+        cellGridBuffer[index] = cell;
+        return;
+    }
+    
     float density = cell.density;
     float k_springCoefficient = pow(density, k_d_p) * pow(0.1f, k_c_p);
-    float x =  abs(force_y)  / (float) k_springCoefficient; // alternative?
+    float x = max(abs(force_y) - cell.hardness, 0.0f) / (float) k_springCoefficient; // alternative?
+    x = abs(x);
     x *= deltaTime * timeScale;
     x = min(x, 0.99 * cellSize);
     
     
-    if ((x > 0.0) && /*(cell.density < maxSnowDensity) &&*/ (cell.isOccupied > -1))
+    if ((x > 0.0) && (cell.isOccupied > -1))
     {
         float cell_delimeter = max((cellSize - x), 0.0f);
         float V_lower = cellSize * cellSize * cell_delimeter;

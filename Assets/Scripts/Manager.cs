@@ -18,10 +18,10 @@ public class Manager : MonoBehaviour
     public float cellSize; // m
     private float planeSideSize;
 
-    [Range(0.0f, 1000.0f)]
-    public float timeScale = 0.5f;
-    [Range(0.0f, 1.0f)]
-    public float simulationSpeed = 0.5f;
+    [Range(0.0f, 100.0f)]
+    public float timeScale = 0.0f;
+    //[Range(0.0f, 1.0f)]
+    //public float simulationSpeed = 0.5f;
     [Range(0.0f, 8.0f)]
     public float snowAddedHeight = 0.5f;
     public float freshSnowDensity = 20f; //kg/m^3
@@ -353,7 +353,6 @@ public class Manager : MonoBehaviour
         shader.SetFloat("deltaTime", Time.deltaTime);
         shader.SetFloat("time", time += Time.deltaTime);
         shader.SetFloat("timeScale", timeScale);
-        shader.SetFloat("simulationSpeed", simulationSpeed);
 
         snowAddedHeight = snowAddedHeight - snowAddedHeight % cellSize;
         shader.SetFloat("snowAddedHeight", snowAddedHeight); 
@@ -458,7 +457,7 @@ public class Manager : MonoBehaviour
 
     void OnGUI()
     {
-        if (GUI.Button(new Rect(10, 35, 65, 30), "Print Height"))
+        if (GUI.Button(new Rect(10, 35, 80, 30), "Print Height"))
         {
             
             int index = 512 + 1024 * 512;
@@ -466,14 +465,14 @@ public class Manager : MonoBehaviour
            Debug.Log("Height of center column 512x512: " +  height);
         }
 
-        if(GUI.Button(new Rect(10, 70, 65, 30), "Print Mass"))
+        if(GUI.Button(new Rect(10, 70, 80, 30), "Print Mass"))
         {
             int index = 512 + 1024 * 512;
             float mass = snowTotalsArray[index].mass;
             Debug.Log("Mass of center column 512x512: " + mass);
         }
 
-        if (GUI.Button(new Rect(10, 105, 65, 30), "Add Snow"))
+        if (GUI.Button(new Rect(10, 105, 80, 30), "Add Snow"))
         {
             shader.Dispatch(kernelAddHeight, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX), Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY), 1);
             Debug.Log("Adding " + snowAddedHeight + " meters of snow");
