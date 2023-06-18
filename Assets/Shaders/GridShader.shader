@@ -6,7 +6,7 @@ Shader "Custom/GridShader"
 		[Toggle(SHOW_FORCE)] _Show_Force("Show Force", Float) = 0
 		[Toggle(SHOW_SNOWPARAMS)] _Show_SnowParams("Show Snow Paramt", Float) = 0
 		[Toggle(SHOW_INDEXES)] _Show_Indexes("Show Indexes", Float) = 0
-		//_HeightMap("Albedo (RGB)", 2D) = "white" {}
+		//_MaxDensity("Max Density", Float) = 60
 	}
 
 	SubShader{
@@ -33,6 +33,9 @@ Shader "Custom/GridShader"
 		float _CellSize;
 		float _Metallic;
 
+		float _MaxSnowDensity;
+		//float _MaxDensity;
+
 		#pragma surface surf Standard vertex:vert addshadow fullforwardshadows alpha:fade
 		#pragma instancing_options procedural:setup
 
@@ -53,10 +56,12 @@ Shader "Custom/GridShader"
 			float3 WSposition;
 			float3 force;
 			float density;
+			float indentAmount;
 			float hardness;
 			float temperature;
 			float grainSize;
 			float mass;
+			float massOver;
 			int index;
 			int isOccupied; //TO-DO - enum here
 		};
@@ -99,18 +104,18 @@ Shader "Custom/GridShader"
 				if (content > -1) {
 					_Color.r = 0.0f; //cell.mass;
 					_Color.g = 0.0f; //content is the index of the particle that the cell is occupied by
-					_Color.b = cell.density;
+					_Color.b = ( (float)cell.density/ (float)_MaxSnowDensity)*1.0f;
 					_Color.a = 1.0f;
 				}
 			}
 
 			if ((_Show_Force)) {
-				float3 force = (cell.force );
-				_Color.r = force.x;
-				_Color.g = force.y;
-				_Color.b = force.z;
+				float3 force = (cell.force);
+				_Color.r = max(abs(force.x) - cell.hardness, 0.0f) / (float) force.x;
+				_Color.g = max(abs(force.y) - cell.hardness, 0.0f) / (float) force.y;
+				_Color.b = max(abs(force.z) - cell.hardness, 0.0f) / (float) force.z;
 
-				_Color.a = 1.0f * saturate(length(force));
+				_Color.a =  saturate(10.0f * length(force));
 			}
 			
 			if ((_Show_Indexes)) {
@@ -121,14 +126,13 @@ Shader "Custom/GridShader"
 
 				_Color.a = 0.5f;
 			}
-			
 		#endif
 	}
 
 	 void surf(Input IN, inout SurfaceOutputStandard o) {
 		//fixed4 c = _Color;
-		o.Metallic = 0;
-		o.Smoothness = 1;
+		o.Metallic = -1;
+		o.Smoothness = 0;
 		//float heightSample = tex2D(_HeightMap, IN.uv);
 		o.Albedo = _Color.rgb;
 		o.Alpha = _Color.a;
