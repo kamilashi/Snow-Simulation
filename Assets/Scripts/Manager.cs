@@ -7,21 +7,22 @@ using UnityEngine.Rendering;
 
 public class Manager : MonoBehaviour
 {
+    public GameObject cameras;
+    private int activeCameraNo = 0;
+
     public ComputeShader shader;
 
     public int texResolution;
 
     public bool showGrid = true;
-    public bool showSnowParticles = true;
-    public bool toggle = false;
+    //public bool showSnowParticles = true;
+    //public bool toggle = false;
     public Vector3 gridCenter;
     public float cellSize; // m
     private float planeSideSize;
 
     [Range(0.0f, 100.0f)]
     public float timeScale = 0.0f;
-    //[Range(0.0f, 1.0f)]
-    //public float simulationSpeed = 0.5f;
     [Range(0.0f, 8.0f)]
     public float snowAddedHeight = 0.5f;
     public float freshSnowDensity = 20f; //kg/m^3
@@ -34,12 +35,14 @@ public class Manager : MonoBehaviour
     [Range(0.0f, 10.0f)]
     public float k_d_p = 2.56f;
     [Range(0.0f, 10.0f)]
-    public float k_c_p = 0.54f; 
+    public float k_c_p = 0.54f;
 
+    public float minSnowTemperature = -20.0f; //degree celcius
     [Range(-20.0f, -1.0f)]
-    public float temperature = -3.0f; //kg/m^3
+    public float airTemperature = -3.0f; //kg/m^3
+    public float groundTemperature = -30.0f; //kg/m^3
+
     private float time = 0.0f; 
-    //private float k_springCoefficient = 400000000; //N/m^3  //2.8f;
 
     private int gridWidth;
     private int gridHeight;
@@ -169,7 +172,10 @@ public class Manager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+
         InitDefaultArguments();
+        InitializeTweakParameters();
+        UpdateTweakParameters();
         CreateTextures();
         GenerateHeightMap();
         InitGrid();
@@ -242,11 +248,6 @@ public class Manager : MonoBehaviour
         shader.SetFloat("planeSideSize", planeSideSize);
         Vector3 boundsToWorld = transform.TransformPoint(bounds.center);
         shader.SetFloats("planeCenter", new float[] { boundsToWorld.x, boundsToWorld.y, boundsToWorld.z });
-        //Debug.Log("planeCenter y wcc " + boundsToWorld.y);
-
-
-        shader.SetFloat("deltaTime", Time.deltaTime);
-        shader.SetFloat("timeScale", timeScale);
 
 
         shader.GetKernelThreadGroupSizes(kernelGenerateGroundHeight, out heightThreadGroupSizeX, out heightThreadGroupSizeY, out _);
@@ -264,14 +265,53 @@ public class Manager : MonoBehaviour
         gridHeight = 50;
         gridDepth = 50;
         snowTotalsArraySize = texResolution * texResolution;
+    }
 
+    private void InitializeTweakParameters()
+    {
+        // set numerical parameters here only once
+
+        int[] gridDimensions = new int[] { gridWidth, gridHeight, gridDepth };
+        shader.SetInts("gridDimensions", gridDimensions); //in cell numbers! 
+        shader.SetFloat("cellSize", cellSize);
+        shader.SetFloat("maxSnowDensity", maxSnowDensity);
+        shader.SetFloat("groundTemperature", groundTemperature);
+        shader.SetFloat("V_cell", cellSize * cellSize * cellSize); // m^3
+
+        float[] gridC = new float[] { gridCenter.x, gridCenter.y, gridCenter.z };
+        shader.SetFloats("gridCenter", gridC);
+
+        int cellCount = gridWidth * gridHeight * gridDepth;
+        shader.SetInt("cellBufferLength", cellCount);
+
+        GridMaterial.SetFloat("_CellSize", cellSize);
+        GridMaterial.SetFloat("_MaxSnowDensity", maxSnowDensity);
+        GridMaterial.SetFloat("_MinTemperature", minSnowTemperature < groundTemperature? minSnowTemperature: groundTemperature);
+    }
+    private void UpdateTweakParameters()
+    {
+        // set numerical parameters that need to be updated every frame
+
+        shader.SetFloat("freshSnowDensity", freshSnowDensity);
+        shader.SetFloat("airTemperature", airTemperature);
+
+        shader.SetFloat("h_d_p", h_d_p);
+        shader.SetFloat("h_c_p", h_c_p);
+        shader.SetFloat("k_d_p", k_d_p);
+        shader.SetFloat("k_c_p", k_c_p);
+
+        shader.SetFloat("deltaTime", Time.deltaTime);
+        shader.SetFloat("time", time += Time.deltaTime);
+        shader.SetFloat("timeScale", timeScale);
+
+        snowAddedHeight = snowAddedHeight - snowAddedHeight % cellSize;
+        shader.SetFloat("snowAddedHeight", snowAddedHeight);
     }
     private void InitGrid()
     {
         int cellCount = gridWidth * gridHeight * gridDepth;
 
         Debug.Log("cellCount " + cellCount);
-
 
         cellGridArray = new Cell[cellCount];
         int index = 0;
@@ -281,7 +321,7 @@ public class Manager : MonoBehaviour
             {
                 for (int k = 0; k < gridDepth; k++)
                 {
-                    Cell cell = new Cell(k,j,i, index, freshSnowDensity, temperature);
+                    Cell cell = new Cell(k,j,i, index, freshSnowDensity, airTemperature);
                     cellGridArray[index] = cell;
                     index++;
                 }
@@ -298,25 +338,9 @@ public class Manager : MonoBehaviour
         kerneClearGrid = shader.FindKernel("ClearGrid");
         shader.SetBuffer(kerneClearGrid, "cellGridBuffer", cellGridBuffer);
 
-        int[] gridDimensions = new int[] { gridWidth, gridHeight, gridDepth };
-        shader.SetInts( "gridDimensions", gridDimensions); //in cell numbers! 
-        shader.SetFloat("cellSize", cellSize);
-        shader.SetFloat("maxSnowDensity", maxSnowDensity);
-        shader.SetFloat("freshSnowDensity", freshSnowDensity);
-        shader.SetFloat("temperature", temperature);
-        
-        shader.SetFloat("h_d_p", h_d_p);
-        shader.SetFloat("h_c_p", h_c_p);
-        shader.SetFloat("k_d_p", k_d_p);
-        shader.SetFloat("k_c_p", k_c_p);
-
-        //shader.SetFloat("k_springCoefficient", k_springCoefficient); 
-        shader.SetFloat("V_cell", cellSize* cellSize* cellSize); // m^3
-        float[] gridC = new float[] { gridCenter.x, gridCenter.y, gridCenter.z };
-        shader.SetFloats("gridCenter", gridC);
-        shader.SetInt("cellBufferLength", cellCount);
         shader.SetTexture(kernePopulateGrid, "GroundHeightMap", groundHeightMapTexture);
         shader.SetTexture(kernePopulateGrid, "Debug", debugText);
+
 
         shader.GetKernelThreadGroupSizes(kernePopulateGrid, out gridThreadGroupSizeX, out gridTthreadGroupSizeY, out gridThreadGroupSizeZ);
         shader.Dispatch(kernePopulateGrid, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX), 
@@ -324,8 +348,7 @@ public class Manager : MonoBehaviour
                                            Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
 
         GridMaterial.SetBuffer("cellGridBuffer", cellGridBuffer);
-        GridMaterial.SetFloat("_CellSize", cellSize);
-        GridMaterial.SetFloat("_MaxSnowDensity", maxSnowDensity);
+
 
         gridArgs = new uint[] { cubeMesh.GetIndexCount(0), (uint)cellCount, 0, 0, 0 };
         gridArgsBuffer = new ComputeBuffer(1, gridArgs.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
@@ -350,20 +373,7 @@ public class Manager : MonoBehaviour
         // Update is called once per frame
         void Update()
     {
-        shader.SetFloat("deltaTime", Time.deltaTime);
-        shader.SetFloat("time", time += Time.deltaTime);
-        shader.SetFloat("timeScale", timeScale);
-
-        snowAddedHeight = snowAddedHeight - snowAddedHeight % cellSize;
-        shader.SetFloat("snowAddedHeight", snowAddedHeight); 
-        shader.SetFloat("freshSnowDensity", freshSnowDensity); 
-        shader.SetFloat("temperature", temperature);
-        shader.SetFloat("maxSnowDensity", maxSnowDensity);
-        shader.SetFloat("h_d_p", h_d_p);
-        shader.SetFloat("h_c_p", h_c_p);
-        shader.SetFloat("k_d_p", k_d_p);
-        shader.SetFloat("k_c_p", k_c_p);
-        GridMaterial.SetFloat("maxSnowDensity", maxSnowDensity);
+        UpdateTweakParameters();
 
         shader.Dispatch(kernelClearHeight, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX), Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY), 1);
 
@@ -457,26 +467,84 @@ public class Manager : MonoBehaviour
 
     void OnGUI()
     {
-        if (GUI.Button(new Rect(10, 35, 80, 30), "Print Height"))
+        float vertical_interval = 35;
+        float screep_pos_y_from_top = 35;
+        int ui_element_no = 0;
+        int screen_width = Screen.width;
+
+
+        // left screen ui
+
+
+        timeScale = GUI.HorizontalSlider(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), timeScale, 0.0f, 100.0f);
+
+        if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), "Get Height"))
         {
-            
+
             int index = 512 + 1024 * 512;
             float height = snowTotalsArray[index].height;
-           Debug.Log("Height of center column 512x512: " +  height);
+            Debug.Log("Height of center column 512x512: " + height);
         }
 
-        if(GUI.Button(new Rect(10, 70, 80, 30), "Print Mass"))
+        if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), "Get Mass"))
         {
             int index = 512 + 1024 * 512;
             float mass = snowTotalsArray[index].mass;
             Debug.Log("Mass of center column 512x512: " + mass);
         }
 
-        if (GUI.Button(new Rect(10, 105, 80, 30), "Add Snow"))
+        snowAddedHeight = GUI.HorizontalSlider(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), snowAddedHeight, 0.0f, 8.0f);
+        snowAddedHeight = snowAddedHeight - snowAddedHeight % cellSize;
+
+        if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), "Add Snow"))
         {
+            shader.SetFloat("snowAddedHeight", snowAddedHeight); 
+            shader.SetFloat("airTemperature", airTemperature); 
             shader.Dispatch(kernelAddHeight, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX), Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY), 1);
             Debug.Log("Adding " + snowAddedHeight + " meters of snow");
         }
+
+        airTemperature = GUI.HorizontalSlider(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), airTemperature, minSnowTemperature, 0.0f);
+
+        // right screen ui
+        ui_element_no = 0;
+
+        if (GUI.Button(new Rect(screen_width - 110, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), "Switch Camera"))
+        {
+            int cameraCount = cameras.transform.childCount;
+            activeCameraNo++;
+            activeCameraNo = activeCameraNo % cameraCount;
+
+            for (int i = 0; i < cameraCount; i++)
+            {
+                GameObject camera = cameras.transform.GetChild(i).gameObject;
+                camera.SetActive(false);
+                if (i == activeCameraNo)
+                {
+                    camera.SetActive(true);
+                }
+            }
+                
+        }
+
+        if (GUI.Button(new Rect(screen_width - 110, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), "Toggle Density"))
+        {
+            float toggle = GridMaterial.GetFloat("_Show_Density");
+            GridMaterial.SetFloat("_Show_Density", toggle == 0.0f ? 1.0f : 0.0f);
+        }
+
+        if (GUI.Button(new Rect(screen_width - 110, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), "Toggle Temperature"))
+        {
+            float toggle = GridMaterial.GetFloat("_Show_Temperature");
+            GridMaterial.SetFloat("_Show_Temperature", toggle == 0.0f ? 1.0f : 0.0f);
+        }
+
+        if (GUI.Button(new Rect(screen_width - 110, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), "Toggle Force"))
+        {
+            float toggle = GridMaterial.GetFloat("_Show_Force");
+            GridMaterial.SetFloat("_Show_Force", toggle == 0.0f ? 1.0f : 0.0f);
+        }
+
     }
 
     void DebugPrint()

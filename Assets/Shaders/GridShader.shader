@@ -4,9 +4,9 @@ Shader "Custom/GridShader"
 	Properties{
 		_Color("Color", Color) = (0,0,0,1)
 		[Toggle(SHOW_FORCE)] _Show_Force("Show Force", Float) = 0
-		[Toggle(SHOW_SNOWPARAMS)] _Show_SnowParams("Show Snow Paramt", Float) = 0
+		[Toggle(SHOW_SNOWPARAMS)] _Show_Density("Show Density", Float) = 0
+		[Toggle(SHOW_SNOWPARAMS)] _Show_Temperature("Show Temperature", Float) = 0
 		[Toggle(SHOW_INDEXES)] _Show_Indexes("Show Indexes", Float) = 0
-		//_MaxDensity("Max Density", Float) = 60
 	}
 
 	SubShader{
@@ -19,8 +19,6 @@ Shader "Custom/GridShader"
 
 		CGPROGRAM
 
-		//sampler2D _HeightMap;
-
 		struct Input {
 				float2 uv;
 				};
@@ -28,13 +26,14 @@ Shader "Custom/GridShader"
 		fixed4 _Color;
 		float3 _Position;
 		float _Show_Force;
-		float _Show_SnowParams;
+		float _Show_Density;
+		float _Show_Temperature;
 		float _Show_Indexes;
 		float _CellSize;
 		float _Metallic;
 
 		float _MaxSnowDensity;
-		//float _MaxDensity;
+		float _MinTemperature;
 
 		#pragma surface surf Standard vertex:vert addshadow fullforwardshadows alpha:fade
 		#pragma instancing_options procedural:setup
@@ -86,39 +85,42 @@ Shader "Custom/GridShader"
 		#ifdef UNITY_PROCEDURAL_INSTANCING_ENABLED
 			Cell cell = cellGridBuffer[unity_InstanceID];
 			_Position = cell.WSposition;
+			//content is the index of the particle that the cell is occupied by
 			int content = cell.isOccupied;
-			if(_Show_SnowParams){
-
-				if (content == -2) {
-					_Color.r = 0.0f;
-					_Color.g = 0.0f; //content is the index of the particle that the cell is occupied by
-					_Color.b = 0.0f;
-					_Color.a = 0.0f;
-				}
-				if (content == -1) { //only air
-					_Color.r = 0.0f;
-					_Color.g = 0.0f; //content is the index of the particle that the cell is occupied by
-					_Color.b = 0.0f;
-					_Color.a = 0.0f;
-				}
-				if (content > -1) {
-					_Color.r = 0.0f; //cell.mass;
-					_Color.g = 0.0f; //content is the index of the particle that the cell is occupied by
+			if(_Show_Density){
+				if (content == 1) {
+					_Color.r = 0.0f; 
+					_Color.g = 0.0f; 
 					_Color.b = ( (float)cell.density/ (float)_MaxSnowDensity)*1.0f;
 					_Color.a = 1.0f;
 				}
+				else {
+					_Color = float4(0, 0, 0, 0);
+				}
 			}
 
-			if ((_Show_Force)) {
-				float3 force = (cell.force);
-				_Color.r = max(abs(force.x) - cell.hardness, 0.0f) / (float) force.x;
-				_Color.g = max(abs(force.y) - cell.hardness, 0.0f) / (float) force.y;
-				_Color.b = max(abs(force.z) - cell.hardness, 0.0f) / (float) force.z;
+			if (_Show_Temperature) {
+				//if (content == 1) {
+					_Color.r = (float)(abs(cell.temperature) / 20.0f /*(float) abs(_MinTemperature)*/ ) * -4.0f;
+					_Color.g = 0.0f;
+					_Color.b = 0.0f;
+					_Color.a = 1.0f;
+				//}
+				//else {
+				//	_Color = float4(0, 0, 0, 1);
+				//}
+			}
 
-				_Color.a =  saturate(10.0f * length(force));
+			if (_Show_Force) {
+				float3 force = (cell.force);
+				_Color.r = (float) max(abs(force.x) - abs(cell.hardness), 0.0f) / (float) force.x;
+				_Color.g = (float) max(abs(force.y) - abs(cell.hardness), 0.0f) / (float) force.y;
+				_Color.b = (float) max(abs(force.z) - abs(cell.hardness), 0.0f) / (float) force.z;
+
+				_Color.a =  saturate(10.0f * abs(length(force)));
 			}
 			
-			if ((_Show_Indexes)) {
+			if (_Show_Indexes) {
 				float3 index = ((float3) cell.gridIndex/ (float) 50.0f);
 				_Color.r = index.x;
 				_Color.g = index.y;
@@ -131,7 +133,7 @@ Shader "Custom/GridShader"
 
 	 void surf(Input IN, inout SurfaceOutputStandard o) {
 		//fixed4 c = _Color;
-		o.Metallic = -1;
+		o.Metallic = 0;
 		o.Smoothness = 0;
 		//float heightSample = tex2D(_HeightMap, IN.uv);
 		o.Albedo = _Color.rgb;

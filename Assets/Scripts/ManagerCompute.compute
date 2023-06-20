@@ -70,7 +70,8 @@ int3 particlesPerAxis;
 float V_cell;
 
 float snowAddedHeight;
-float temperature;
+float airTemperature;
+float groundTemperature;
 float maxSnowDensity;
 float freshSnowDensity;
 
@@ -196,12 +197,14 @@ void PopulateGrid(uint3 id : SV_DispatchThreadID)
     {
         cell.isOccupied = -2; //below ground
         cell.density = 100.0f;
+        cell.temperature = groundTemperature;
     }
     else if (cell.WSposition.y < snowLevel + cellSize * 0.5f)
     {
         if (cell.isOccupied == -1) //if new snow is added
         {
             cell.density = freshSnowDensity;
+            cell.temperature = airTemperature;
         }
         cell.isOccupied = 1; //below snow surface but above ground - inside snow pack
         float density = cell.density;
@@ -213,10 +216,10 @@ void PopulateGrid(uint3 id : SV_DispatchThreadID)
     {
         cell.isOccupied = -1; //free
         cell.density = 0.0f; //air
+        cell.temperature = airTemperature;
     }
     
     cell.mass = cell.density * V_cell;
-    cell.temperature = temperature;
     cellGridBuffer[index] = cell;
 }
 
