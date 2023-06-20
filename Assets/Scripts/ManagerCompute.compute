@@ -250,7 +250,7 @@ void ComputeForces(uint3 id : SV_DispatchThreadID)
         Cell upperCell = cellGridBuffer[upperCellI];
         
         cell.massOver = upperCell.massOver + cell.mass;
-        cell.force = float3(0, -cell.massOver * G, 0) + appliedForce;
+        cell.force = float3(0, - cell.massOver * G, 0) + appliedForce;
         cellGridBuffer[index] = cell;
     }
 }

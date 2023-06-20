@@ -478,6 +478,12 @@ public class Manager : MonoBehaviour
 
         timeScale = GUI.HorizontalSlider(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), timeScale, 0.0f, 100.0f);
 
+        if (GUI.Button(new Rect(10 + 100 + 10, screep_pos_y_from_top + (ui_element_no-1) * vertical_interval, 100, 30), "Start time"))
+        {
+            timeScale = 0.1f;
+            Debug.Log("Time set to " + timeScale);
+        }
+
         if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), "Get Height"))
         {
 

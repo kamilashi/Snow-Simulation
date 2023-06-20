@@ -76,7 +76,7 @@ Material:
     - _Mode: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.02
-    - _Show_Density: 0
+    - _Show_Density: 1
     - _Show_Force: 0
     - _Show_Indexes: 0
     - _Show_SnowParams: 1
