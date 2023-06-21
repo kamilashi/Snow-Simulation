@@ -3,7 +3,7 @@ Shader "Custom/GridShader"
 
 	Properties{
 		_Color("Color", Color) = (0,0,0,1)
-		[Toggle(SHOW_FORCE)] _Show_Force("Show Force", Float) = 0
+		[Toggle(SHOW_Pressure)] _Show_Pressure("Show Pressure", Float) = 0
 		[Toggle(SHOW_SNOWPARAMS)] _Show_Density("Show Density", Float) = 0
 		[Toggle(SHOW_SNOWPARAMS)] _Show_Temperature("Show Temperature", Float) = 0
 		[Toggle(SHOW_INDEXES)] _Show_Indexes("Show Indexes", Float) = 0
@@ -25,7 +25,7 @@ Shader "Custom/GridShader"
 
 		fixed4 _Color;
 		float3 _Position;
-		float _Show_Force;
+		float _Show_Pressure;
 		float _Show_Density;
 		float _Show_Temperature;
 		float _Show_Indexes;
@@ -53,7 +53,7 @@ Shader "Custom/GridShader"
 		{
 			int3 gridIndex;
 			float3 WSposition;
-			float3 force;
+			float3 pressure;
 			float density;
 			float indentAmount;
 			float hardness;
@@ -111,13 +111,13 @@ Shader "Custom/GridShader"
 				//}
 			}
 
-			if (_Show_Force) {
-				float3 force = (cell.force);
-				_Color.r = (float) max(abs(force.x) - abs(cell.hardness), 0.0f) / (float) force.x;
-				_Color.g = (float) max(abs(force.y) - abs(cell.hardness), 0.0f) / (float) force.y;
-				_Color.b = (float) max(abs(force.z) - abs(cell.hardness), 0.0f) / (float) force.z;
+			if (_Show_Pressure) {
+				float3 pressure = (cell.pressure);
+				_Color.r = (float) max(abs(pressure.x) - abs(cell.hardness), 0.0f) / (float)pressure.x;
+				_Color.g = (float) max(abs(pressure.y) - abs(cell.hardness), 0.0f) / (float)pressure.y;
+				_Color.b = (float) max(abs(pressure.z) - abs(cell.hardness), 0.0f) / (float)pressure.z;
 
-				_Color.a =  saturate(10.0f * abs(length(force)));
+				_Color.a =  saturate(10.0f * abs(length(pressure)));
 			}
 			
 			if (_Show_Indexes) {
@@ -132,10 +132,8 @@ Shader "Custom/GridShader"
 	}
 
 	 void surf(Input IN, inout SurfaceOutputStandard o) {
-		//fixed4 c = _Color;
 		o.Metallic = 0;
 		o.Smoothness = 0;
-		//float heightSample = tex2D(_HeightMap, IN.uv);
 		o.Albedo = _Color.rgb;
 		o.Alpha = _Color.a;
 	  }

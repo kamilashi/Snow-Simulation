@@ -375,7 +375,7 @@ MonoBehaviour:
   timeScale: 0
   snowAddedHeight: 7
   freshSnowDensity: 20
-  maxSnowDensity: 66
+  maxSnowDensity: 110
   h_d_p: 2.24
   h_c_p: 2
   k_d_p: 2.56

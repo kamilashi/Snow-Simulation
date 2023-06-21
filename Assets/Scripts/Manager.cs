@@ -58,7 +58,7 @@ public class Manager : MonoBehaviour
     {
         public Vector3 gridIndex;
         public Vector3 WSposition;
-        public Vector3 force;
+        public Vector3 pressure;
         public float density;
         public float indentAmount;
         public float hardness;
@@ -73,7 +73,7 @@ public class Manager : MonoBehaviour
         {
             gridIndex = new Vector3(gridX, gridY, gridZ);
             WSposition =  Vector3.zero; //m
-            force = Vector3.zero;
+            pressure = Vector3.zero;
             density = startDensity; // kg/m^3
             indentAmount = 0.0f;
             hardness = 0.0f;    // kg/(m*s^2)
@@ -545,10 +545,10 @@ public class Manager : MonoBehaviour
             GridMaterial.SetFloat("_Show_Temperature", toggle == 0.0f ? 1.0f : 0.0f);
         }
 
-        if (GUI.Button(new Rect(screen_width - 110, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), "Toggle Force"))
+        if (GUI.Button(new Rect(screen_width - 110, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), "Toggle Pressure"))
         {
-            float toggle = GridMaterial.GetFloat("_Show_Force");
-            GridMaterial.SetFloat("_Show_Force", toggle == 0.0f ? 1.0f : 0.0f);
+            float toggle = GridMaterial.GetFloat("_Show_Pressure");
+            GridMaterial.SetFloat("_Show_Pressure", toggle == 0.0f ? 1.0f : 0.0f);
         }
 
     }

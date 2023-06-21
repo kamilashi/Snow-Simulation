@@ -17,7 +17,7 @@ struct Cell
 {
     int3 gridIndex;
     float3 WSposition;
-    float3 force;
+    float3 pressure;
     float density;
     float indentAmount;
     float hardness;
@@ -227,30 +227,28 @@ void PopulateGrid(uint3 id : SV_DispatchThreadID)
 void ComputeForces(uint3 id : SV_DispatchThreadID)
 {
     uint3 id_clipped = clipCellId(id);
-    //int index = id.x + gridDimensions.x * (gridDimensions.y -1 - id.y) + gridDimensions.y * gridDimensions.x * id.z; //iterate top to bottom
     int index = id_clipped.x + gridDimensions.x * (gridDimensions.y - 1 - id_clipped.y) + gridDimensions.y * gridDimensions.x * id_clipped.z; //iterate top to bottom
     Cell cell = cellGridBuffer[index];
     
     if (cell.isOccupied > -2)
     {
-        //float m_total = cell.mass;
+        float area = cellSize * cellSize;
         float3 upPos = cell.WSposition + float3(0, cellSize, 0);
         
-        //float3 appliedForce = float3(0, -100000.0f, 0);
-        float3 appliedForce = float3(0, 0.0f, 0);
+        float3 appliedPressure = float3(0, 0.0f, 0);
         
         if (!isWithinGrid(upPos))
         {
-            cell.massOver = 0.0f + cell.mass;
-            cell.force = float3(0, - cell.massOver * G, 0) + appliedForce;
+            cell.massOver = 0.0f;
+            cell.pressure = float3(0, -(cell.massOver * G) / area, 0) + appliedPressure;
             cellGridBuffer[index] = cell;
             return;
         }
         int upperCellI = getGridIndexFromPosition(upPos);
         Cell upperCell = cellGridBuffer[upperCellI];
         
-        cell.massOver = upperCell.massOver + cell.mass;
-        cell.force = float3(0, - cell.massOver * G, 0) + appliedForce;
+        cell.massOver = upperCell.massOver + upperCell.mass;
+        cell.pressure = float3(0, -(cell.massOver * G) / area, 0) + appliedPressure;
         cellGridBuffer[index] = cell;
     }
 }
@@ -265,8 +263,8 @@ void ApplyForces(uint3 id : SV_DispatchThreadID)
     Cell cell = cellGridBuffer[index];
     cell.indentAmount = 0.0f;
 
-    float force_y = cell.force.y;
-    float3 force_dir = float3(0, 1, 0) * ((float) force_y / (float) abs(force_y));
+    float pressure_y = cell.pressure.y;
+    float3 pressure_dir = float3(0, 1, 0) * ((float) pressure_y / (float) abs(pressure_y));
     
     
     if (cell.density >= maxSnowDensity){
@@ -276,7 +274,7 @@ void ApplyForces(uint3 id : SV_DispatchThreadID)
     
     float density = cell.density;
     float k_springCoefficient = pow(density, k_d_p) * pow(0.1f, k_c_p);
-    float x = max(abs(force_y) - cell.hardness, 0.0f) / (float) k_springCoefficient; // alternative?
+    float x = max(abs(pressure_y) - cell.hardness, 0.0f) / (float) k_springCoefficient; // alternative?
     x = abs(x);
     x *= deltaTime * timeScale;
     x = min(x, 0.99 * cellSize);
@@ -288,7 +286,6 @@ void ApplyForces(uint3 id : SV_DispatchThreadID)
         float V_lower = cellSize * cellSize * cell_delimeter;
         float V_upper = cellSize * cellSize * (cellSize - cell_delimeter);
         
-        //float Vnew_to_Vold = cell_delimeter / (float) (cellSize);
         float Vnew_to_Vold = V_lower / V_cell;
         float density_lower = cell.density / (float) Vnew_to_Vold;
         float density_upper = 0.0f;
