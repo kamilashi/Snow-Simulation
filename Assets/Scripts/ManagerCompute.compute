@@ -208,9 +208,11 @@ void PopulateGrid(uint3 id : SV_DispatchThreadID)
         }
         cell.isOccupied = 1; //below snow surface but above ground - inside snow pack
         float density = cell.density;
+        float temperature = cell.temperature;
         //cell.hardness = (density * density * density * 0.001 + density * density * 0.01 +  density * 0.1) * 10; /** 10000.0f;*/
         //cell.hardness = pow(density, 3.99f) * 3.55;
-        cell.hardness = pow(density, h_d_p) * pow(0.1, h_c_p);
+        //cell.hardness = pow(density, h_d_p) * pow(0.1, h_c_p);
+        cell.hardness = - 0.16599 + 0.542153 * density - 0.08925*temperature + 0.447667*pow(density, 2)+ 0.159256*density*temperature - 0.01336*pow(temperature, 2) + 0.261043*pow(temperature,3) - 0.15863*pow(density, 2)*temperature + 0.022601*density*pow(temperature, 2) - 0.00032*pow(temperature, 3);
     }
     else
     {
