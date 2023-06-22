@@ -42,7 +42,7 @@ public class SnowCollider : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        Vector3 newPosition = new Vector3(transform.position.x, heightPosition, transform.position.z);
+        Vector3 newPosition = new Vector3(transform.position.x, heightPosition + bounds.extents.y, transform.position.z);
         transform.SetPositionAndRotation(newPosition, Quaternion.identity);
         CalculateCollision();
     }

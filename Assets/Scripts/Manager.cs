@@ -98,10 +98,9 @@ public class Manager : MonoBehaviour
     struct ColumnData
     {
         public float height; //snowHeight
-        //public float groundHeight; //offset from plane to ground surface
+        public float groundHeight; //offset from plane to ground surface
         public float mass;
         public float mass_temp;
-        public float averageDensity;
     };
 
     struct Particle
@@ -180,7 +179,7 @@ public class Manager : MonoBehaviour
         CreateTextures();
         GenerateHeightMap();
         InitGrid();
-        //InitializeColliders();
+        InitializeColliders();
         //InitSnowParticles();
     }
 
@@ -228,9 +227,9 @@ public class Manager : MonoBehaviour
         shader.SetInt("texResolution", texResolution);
         shader.SetTexture(kernelGenerateGroundHeight, "GroundHeightMap", groundHeightMapTexture);
         shader.SetTexture(kernelGenerateGroundHeight, "Debug", debugText);
+        shader.SetBuffer(kernelGenerateGroundHeight, "snowTotalsBuffer", snowTotalsBuffer);
 
         shader.SetBuffer(kernelInitHeight, "snowTotalsBuffer", snowTotalsBuffer);
-        //shader.SetTexture(kernelInitHeight, "GroundHeightMap", groundHeightMapTexture);
         shader.SetBuffer(kernelAddHeight, "snowTotalsBuffer", snowTotalsBuffer);
 
         
@@ -407,7 +406,7 @@ public class Manager : MonoBehaviour
                                               gridHeight);
 
         snowTotalsBuffer.GetData(snowTotalsArray);
-        //UpdateColliders();
+        UpdateColliders();
 
         //no lagrangian particles for now:
         //shader.Dispatch(kernelCollisionDetection, Mathf.CeilToInt((float)particlesPerAxis.x / (float)snowThreadGroupSizeX),
@@ -502,8 +501,8 @@ public class Manager : MonoBehaviour
             collider.cellSize = cellSize;
             int index = WorldPosToArrayIndex(collider.transform.position);
             float snowHeight = snowTotalsArray[index].height;
-            //float groundHeight = snowTotalsArray[index].groundHeight;
-            collider.SetHeight(snowHeight + /*groundHeight +*/ planeCenter.y);
+            float groundHeight = snowTotalsArray[index].groundHeight;
+            collider.SetHeight(snowHeight + groundHeight + planeCenter.y);
         }
     }
 

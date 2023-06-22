@@ -40,10 +40,9 @@ struct Collider
 struct ColumnData
 {
     float height;
-    //float groundHeight;
+    float groundHeight;
     float mass;
     float mass_temp;
-    float averageDensity;
 };
 
  RWStructuredBuffer<Cell> cellGridBuffer;
@@ -156,6 +155,7 @@ void GenerateHeight(uint3 id : SV_DispatchThreadID)
     float heightMap = SimpleNoise(uv, 5) * 2.0f;
     //float heightMap = 1.0f;
     GroundHeightMap[id.xy] = float4(heightMap.xxx, 1.0f);
+    snowTotalsBuffer[indexTextToArray(id.xy)].groundHeight = heightMap;
     Debug[id.xy] = float4(heightMap.xxx, 1.0f);
 }
 
@@ -165,10 +165,6 @@ void InitSnowHeight(uint3 id : SV_DispatchThreadID)
     // TODO: make it adaptive to the underlying ground height map and wind direction
     snowTotalsBuffer[indexTextToArray(id.xy)].height = snowAddedHeight; // init column heights
     snowTotalsBuffer[indexTextToArray(id.xy)].mass = 0.0f; // init column masses
-    
-    //int2 coords = id.xy;
-    //float groundLevel = GroundHeightMap[coords].x + planeCenter.y;
-    //snowTotalsBuffer[indexTextToArray(coords)].groundHeight = groundLevel;
 }
 
 //TO-DO: rename to clear snow totals
