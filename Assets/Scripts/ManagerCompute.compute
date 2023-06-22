@@ -153,8 +153,8 @@ void GenerateHeight(uint3 id : SV_DispatchThreadID)
    // float2 uvOffset = float2(time, 0.0f);
     //float heightMap = SimpleNoise(uv - uvOffset, 5) * 2.0f;
     
-    float heightMap = SimpleNoise(uv, 5) * 2.0f;
-    //float heightMap = 1.0f;
+    //float heightMap = SimpleNoise(uv, 5) * 2.0f;
+    float heightMap = 1.0f;
     GroundHeightMap[id.xy] = float4(heightMap.xxx, 1.0f);
     snowTotalsBuffer[indexTextToArray(id.xy)].groundHeight = heightMap;
     Debug[id.xy] = float4(heightMap.xxx, 1.0f);
@@ -316,6 +316,7 @@ void UpdateSnowTotals(uint3 id : SV_DispatchThreadID)
 {
     id.z = max(gridDimensions.z - 1 - id.z, 0); // iterate top to bottom
     int2 coords = id.xy;
+    coords = int2(texResolution - 1, texResolution - 1) - coords;
     uint bufferIndex = indexTextToArray(coords);
     int cellIndex = indexTexToGrid(id);
     

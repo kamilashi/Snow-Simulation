@@ -24,8 +24,9 @@ public class SnowCollider : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        MeshFilter mf = GetComponent<MeshFilter>();
-        bounds = mf.sharedMesh.bounds;
+        //MeshFilter mf = GetComponent<MeshFilter>();
+        //bounds = mf.sharedMesh.bounds;
+        bounds = GetComponent<Renderer>().bounds;
         dimensions = new Vector3(bounds.size.x, bounds.size.y, bounds.size.z);
         collisionArea = bounds.size.x * bounds.size.z;
         float force_mg = -1.0f * (mass * G);
@@ -38,7 +39,9 @@ public class SnowCollider : MonoBehaviour
     {
         float force_mg = -1.0f * (mass * G);
         pressure.y = force_mg / collisionArea;
-        //TODO: add active bounding box update?
+        bounds = GetComponent<Renderer>().bounds;
+        dimensions = new Vector3(bounds.size.x, bounds.size.y, bounds.size.z);
+        collisionArea = bounds.size.x * bounds.size.z;
 
         Vector3 newPosition = new Vector3(transform.position.x, heightPosition + bounds.extents.y - cellSize, transform.position.z);
         transform.SetPositionAndRotation(newPosition, Quaternion.identity);
