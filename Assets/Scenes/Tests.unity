@@ -373,8 +373,8 @@ MonoBehaviour:
   gridCenter: {x: 0, y: 0, z: 0}
   cellSize: 0.2
   timeScale: 0
-  snowAddedHeight: 7
-  freshSnowDensity: 30
+  snowAddedHeight: 4
+  freshSnowDensity: 20
   maxSnowDensity: 110
   h_d_p: 2.24
   h_c_p: 2
