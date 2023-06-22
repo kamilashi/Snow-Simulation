@@ -124,14 +124,14 @@ Shader "Custom/GridShader"
 				float3 pressure = (cell.pressure);
 				float vertical_scale = max(abs(pressure.y) - abs(cell.hardness), 0.0f) / (float) abs(cell.hardness) /*((float) cell.massOver * _MaxSnowDensity / ( _CellSize * _CellSize))*/;
 				_Color.r = 0.0f;
-				_Color.g = lerp(0.0f, 1.0f, vertical_scale) * (pressure.y / abs(pressure.y));
+				_Color.g = lerp(0.0f, 1.0f, vertical_scale) * (pressure.y / abs(pressure.y))*2.0f;
 				_Color.b = 0.0f;
 
 				_Color.a =  saturate(10.0f * abs(length(pressure)));
 			}
 			
 			if (_Show_Indexes) {
-				float3 index = ((float3) cell.gridIndex/ (float) 50.0f);
+				float3 index = ((float3) cell.gridIndex/ (float) 49.0f);
 				_Color.r = index.x;
 				_Color.g = index.y;
 				_Color.b = index.z;

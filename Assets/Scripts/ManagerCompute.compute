@@ -1,4 +1,3 @@
-// Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel GenerateHeight
 #pragma kernel InitSnowHeight
 #pragma kernel AddSnowHeight
@@ -10,6 +9,7 @@
 #pragma kernel ClearGrid
 #include "../Scripts/Noises.cginc"
 
+//TODO: put to global defines
 #define PI2 6.28318530718f
 #define G 9.81f
 
@@ -40,6 +40,7 @@ struct Collider
 struct ColumnData
 {
     float height;
+    //float groundHeight;
     float mass;
     float mass_temp;
     float averageDensity;
@@ -152,8 +153,8 @@ void GenerateHeight(uint3 id : SV_DispatchThreadID)
    // float2 uvOffset = float2(time, 0.0f);
     //float heightMap = SimpleNoise(uv - uvOffset, 5) * 2.0f;
     
-    //float heightMap = SimpleNoise(uv, 5) * 2.0f;
-    float heightMap = 1.0f;
+    float heightMap = SimpleNoise(uv, 5) * 2.0f;
+    //float heightMap = 1.0f;
     GroundHeightMap[id.xy] = float4(heightMap.xxx, 1.0f);
     Debug[id.xy] = float4(heightMap.xxx, 1.0f);
 }
@@ -165,6 +166,9 @@ void InitSnowHeight(uint3 id : SV_DispatchThreadID)
     snowTotalsBuffer[indexTextToArray(id.xy)].height = snowAddedHeight; // init column heights
     snowTotalsBuffer[indexTextToArray(id.xy)].mass = 0.0f; // init column masses
     
+    //int2 coords = id.xy;
+    //float groundLevel = GroundHeightMap[coords].x + planeCenter.y;
+    //snowTotalsBuffer[indexTextToArray(coords)].groundHeight = groundLevel;
 }
 
 //TO-DO: rename to clear snow totals

@@ -8,6 +8,7 @@ using UnityEngine.Rendering;
 public class Manager : MonoBehaviour
 {
     public GameObject cameras;
+    public GameObject colliders;
     private int activeCameraNo = 0;
 
     public ComputeShader shader;
@@ -20,6 +21,7 @@ public class Manager : MonoBehaviour
     public Vector3 gridCenter;
     public float cellSize; // m
     private float planeSideSize;
+    private Vector3 planeCenter;
 
     [Range(0.0f, 100.0f)]
     public float timeScale = 0.0f;
@@ -54,9 +56,10 @@ public class Manager : MonoBehaviour
     public Material particleMaterial;
     public Material GridMaterial;
 
+    //TODO: move structs to a separate DataLookup file
     struct Cell
     {
-        public Vector3 gridIndex;
+        public Vector3Int gridIndex;
         public Vector3 WSposition;
         public Vector3 pressure;
         public float density;
@@ -71,7 +74,7 @@ public class Manager : MonoBehaviour
 
         public Cell(int gridX, int gridY, int gridZ, int cubeIndex, float startDensity, float startTemperature)
         {
-            gridIndex = new Vector3(gridX, gridY, gridZ);
+            gridIndex = new Vector3Int(gridX, gridY, gridZ);
             WSposition =  Vector3.zero; //m
             pressure = Vector3.zero;
             density = startDensity; // kg/m^3
@@ -85,39 +88,33 @@ public class Manager : MonoBehaviour
             isOccupied = 0;
         }
     };
-    struct Collider
+    public struct CollisionData
     {
-        public Vector3 velocity;
-        public float mass;
-        public float speed;
-        public float bottomSurfaceArea;
+        public Vector3 position;
+        public Vector3 pressure;
     };
+    private int collisionCellsCount;
 
     struct ColumnData
     {
-        public float height;
+        public float height; //snowHeight
+        //public float groundHeight; //offset from plane to ground surface
         public float mass;
         public float mass_temp;
         public float averageDensity;
     };
 
-    public struct Particle
+    struct Particle
     {
         public Vector3 position;
         public Vector3 velocity;
         public float size;
-        //public Vector3 force;
-        //public Vector3 localPosition;
-        //public Vector3 offsetPosition;
 
         public Particle( float sideSize)
         {
             position = Vector3.zero;
             velocity = Vector3.zero;
             size = sideSize; //radius?
-            //force = Vector3.zero;
-            //localPosition = Vector3.zero;
-            //offsetPosition = Vector3.zero;
         }
     };
     [Range(0.1f, 10.0f)]
@@ -127,14 +124,18 @@ public class Manager : MonoBehaviour
     int SIZE_CELL = 5 * sizeof(int) + 13 * sizeof(float);
     int SIZE_PARTICLE = 7 * sizeof(float);
     int SIZE_COLUMNDATA = 4 * sizeof(float);
+    int SIZE_COLLISIONDATA = 6 * sizeof(float);
+
     Cell[] cellGridArray;
     Particle[] particleArray;
-    ColumnData[] snowTotalsArray; // x for height, y for mass...
+    ColumnData[] snowTotalsArray;
+    CollisionData[] collisionsArray; 
     int snowTotalsArraySize;
 
     ComputeBuffer cellGridBuffer;
     ComputeBuffer particleBuffer;
     ComputeBuffer snowTotalsBuffer;
+    ComputeBuffer collisionsBuffer;
 
     private uint[] gridArgs;
     private uint[] particleArgs;
@@ -179,6 +180,7 @@ public class Manager : MonoBehaviour
         CreateTextures();
         GenerateHeightMap();
         InitGrid();
+        //InitializeColliders();
         //InitSnowParticles();
     }
 
@@ -228,6 +230,7 @@ public class Manager : MonoBehaviour
         shader.SetTexture(kernelGenerateGroundHeight, "Debug", debugText);
 
         shader.SetBuffer(kernelInitHeight, "snowTotalsBuffer", snowTotalsBuffer);
+        //shader.SetTexture(kernelInitHeight, "GroundHeightMap", groundHeightMapTexture);
         shader.SetBuffer(kernelAddHeight, "snowTotalsBuffer", snowTotalsBuffer);
 
         
@@ -247,6 +250,7 @@ public class Manager : MonoBehaviour
         planeSideSize = Mathf.Abs(bounds.extents.x * 2);
         shader.SetFloat("planeSideSize", planeSideSize);
         Vector3 boundsToWorld = transform.TransformPoint(bounds.center);
+        planeCenter = new Vector3(boundsToWorld.x, boundsToWorld.y, boundsToWorld.z);
         shader.SetFloats("planeCenter", new float[] { boundsToWorld.x, boundsToWorld.y, boundsToWorld.z });
 
 
@@ -321,7 +325,7 @@ public class Manager : MonoBehaviour
             {
                 for (int k = 0; k < gridDepth; k++)
                 {
-                    Cell cell = new Cell(k,j,i, index, freshSnowDensity, airTemperature);
+                    Cell cell = new Cell(i ,j, k, index, freshSnowDensity, airTemperature);
                     cellGridArray[index] = cell;
                     index++;
                 }
@@ -403,7 +407,7 @@ public class Manager : MonoBehaviour
                                               gridHeight);
 
         snowTotalsBuffer.GetData(snowTotalsArray);
-
+        //UpdateColliders();
 
         //no lagrangian particles for now:
         //shader.Dispatch(kernelCollisionDetection, Mathf.CeilToInt((float)particlesPerAxis.x / (float)snowThreadGroupSizeX),
@@ -465,6 +469,57 @@ public class Manager : MonoBehaviour
         }
     }
 
+    void InitializeColliders()
+    {
+        int colliderCount = colliders.transform.childCount;
+        snowTotalsBuffer.GetData(snowTotalsArray);
+
+        for (int i = 0; i < colliderCount; i++)
+        {
+            SnowCollider collider = colliders.transform.GetChild(i).gameObject.GetComponentInChildren<SnowCollider>();
+            collider.cellSize = cellSize;
+            int index = WorldPosToArrayIndex(collider.transform.position);
+            float height = snowTotalsArray[index].height;
+            collider.SetHeight(height);
+            collider.Init();
+            collisionCellsCount += collider.cellCount;
+        }
+
+        collisionsArray = new CollisionData[collisionCellsCount];
+        collisionsBuffer = new ComputeBuffer(collisionCellsCount, SIZE_COLLISIONDATA);
+        collisionsBuffer.SetData(collisionsArray);
+
+        //set to corresponding kernel
+    }
+
+    void UpdateColliders()
+    {
+        int colliderCount = colliders.transform.childCount;
+
+        for (int i = 0; i < colliderCount; i++)
+        {
+            SnowCollider collider = colliders.transform.GetChild(i).gameObject.GetComponentInChildren<SnowCollider>();
+            collider.cellSize = cellSize;
+            int index = WorldPosToArrayIndex(collider.transform.position);
+            float snowHeight = snowTotalsArray[index].height;
+            //float groundHeight = snowTotalsArray[index].groundHeight;
+            collider.SetHeight(snowHeight + /*groundHeight +*/ planeCenter.y);
+        }
+    }
+
+    int WorldPosToArrayIndex(Vector3 position)
+    {
+        int index = 0;
+        planeCenter = transform.position;
+
+        float mapX = ((-position.x + planeSideSize / 2.0f - planeCenter.x) / (float)planeSideSize);
+        float mapY = ((-position.z + planeSideSize / 2.0f - planeCenter.z) / (float)planeSideSize);
+        Vector2Int coords = new Vector2Int(Mathf.RoundToInt(mapX * (texResolution - 1.0f)), Mathf.RoundToInt(mapY * (texResolution - 1.0f)));
+
+        index = coords.x + (int) texResolution * coords.y;
+        return index;
+    }
+
     void OnGUI()
     {
         float vertical_interval = 35;
@@ -487,14 +542,14 @@ public class Manager : MonoBehaviour
         if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), "Get Height"))
         {
 
-            int index = 512 + 1024 * 512;
+            int index = 512 + texResolution * 512;
             float height = snowTotalsArray[index].height;
             Debug.Log("Height of center column 512x512: " + height);
         }
 
         if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), "Get Mass"))
         {
-            int index = 512 + 1024 * 512;
+            int index = 512 + texResolution * 512;
             float mass = snowTotalsArray[index].mass;
             Debug.Log("Mass of center column 512x512: " + mass);
         }
