@@ -60,16 +60,17 @@ public class Manager : MonoBehaviour
     struct Cell
     {
         public Vector3Int gridIndex;
+        public int index;
         public Vector3 WSposition;
-        public Vector3 pressure;
-        public float density;
         public float indentAmount;
+        public Vector3 pressure;
         public float hardness;
+        public Vector3 appliedPressure;
+        public float density;
         public float temperature;
         public float grainSize;
         public float mass;
         public float massOver;
-        public int index;
         public int isOccupied; //TO-DO - enum here
 
         public Cell(int gridX, int gridY, int gridZ, int cubeIndex, float startDensity, float startTemperature)
@@ -77,6 +78,7 @@ public class Manager : MonoBehaviour
             gridIndex = new Vector3Int(gridX, gridY, gridZ);
             WSposition =  Vector3.zero; //m
             pressure = Vector3.zero;
+            appliedPressure = Vector3.zero;
             density = startDensity; // kg/m^3
             indentAmount = 0.0f;
             hardness = 0.0f;    // kg/(m*s^2)
@@ -94,6 +96,7 @@ public class Manager : MonoBehaviour
         public Vector3 pressure;
     };
     private int collisionCellsCount;
+    private int kernelSetPressure;
 
     struct ColumnData
     {
@@ -120,7 +123,7 @@ public class Manager : MonoBehaviour
     public float particleSize = 1.0f; // radius
     private int particleCount; // depends on snow height, codependent with particle size
 
-    int SIZE_CELL = 5 * sizeof(int) + 13 * sizeof(float);
+    int SIZE_CELL = 5 * sizeof(int) + 16 * sizeof(float);
     int SIZE_PARTICLE = 7 * sizeof(float);
     int SIZE_COLUMNDATA = 4 * sizeof(float);
     int SIZE_COLLISIONDATA = 6 * sizeof(float);
@@ -180,6 +183,7 @@ public class Manager : MonoBehaviour
         GenerateHeightMap();
         InitGrid();
         InitializeColliders();
+        UpdateColliders();
         //InitSnowParticles();
     }
 
@@ -390,7 +394,8 @@ public class Manager : MonoBehaviour
         //shader.Dispatch(kernelComputeForces, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),
         //                                      Mathf.CeilToInt((float)gridHeight / (float)gridTthreadGroupSizeY),
         //                                      Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
-        
+
+        shader.Dispatch(kernelSetPressure, collisionCellsCount, 1, 1);
         shader.Dispatch(kernelComputeForces, 50, 1, 50);
         shader.Dispatch(kernelApplyForces, 50, 1, 50);
 
@@ -487,13 +492,15 @@ public class Manager : MonoBehaviour
         collisionsArray = new CollisionData[collisionCellsCount];
         collisionsBuffer = new ComputeBuffer(collisionCellsCount, SIZE_COLLISIONDATA);
         collisionsBuffer.SetData(collisionsArray);
-
-        //set to corresponding kernel
+        kernelSetPressure = shader.FindKernel("SetPressure");
+        shader.SetBuffer(kernelSetPressure, "collisionsBuffer", collisionsBuffer);
+        shader.SetBuffer(kernelSetPressure, "cellGridBuffer", cellGridBuffer);
     }
 
     void UpdateColliders()
     {
         int colliderCount = colliders.transform.childCount;
+        int head_index = 0;
 
         for (int i = 0; i < colliderCount; i++)
         {
@@ -503,19 +510,22 @@ public class Manager : MonoBehaviour
             float snowHeight = snowTotalsArray[index].height;
             float groundHeight = snowTotalsArray[index].groundHeight;
             collider.SetHeight(snowHeight + groundHeight + planeCenter.y);
+
+            collider.getCollisionData().CopyTo(collisionsArray, head_index);
+            head_index += collider.cellCount;
         }
+        collisionsBuffer.SetData(collisionsArray);
     }
 
     int WorldPosToArrayIndex(Vector3 position)
     {
-        int index = 0;
         planeCenter = transform.position;
 
         float mapX = ((-position.x + planeSideSize / 2.0f - planeCenter.x) / (float)planeSideSize);
         float mapY = ((-position.z + planeSideSize / 2.0f - planeCenter.z) / (float)planeSideSize);
         Vector2Int coords = new Vector2Int(Mathf.RoundToInt(mapX * (texResolution - 1.0f)), Mathf.RoundToInt(mapY * (texResolution - 1.0f)));
 
-        index = coords.x + (int) texResolution * coords.y;
+        int index = coords.x + (int) texResolution * coords.y;
         return index;
     }
 

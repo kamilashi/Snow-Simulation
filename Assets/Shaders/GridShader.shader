@@ -54,16 +54,17 @@ Shader "Custom/GridShader"
 		struct Cell
 		{
 			int3 gridIndex;
+			int index;
 			float3 WSposition;
-			float3 pressure;
-			float density;
 			float indentAmount;
+			float3 pressure;
 			float hardness;
+			float3 appliedPressure;
+			float density;
 			float temperature;
 			float grainSize;
 			float mass;
 			float massOver;
-			int index;
 			int isOccupied; //TO-DO - enum here
 		};
 
@@ -121,13 +122,16 @@ Shader "Custom/GridShader"
 			}
 
 			if (_Show_Pressure) {
-				float3 pressure = (cell.pressure);
-				float vertical_scale = max(abs(pressure.y) - abs(cell.hardness), 0.0f) / (float) abs(cell.hardness) /*((float) cell.massOver * _MaxSnowDensity / ( _CellSize * _CellSize))*/;
-				_Color.r = 0.0f;
-				_Color.g = lerp(0.0f, 1.0f, vertical_scale) * (pressure.y / abs(pressure.y))*2.0f;
-				_Color.b = 0.0f;
+				if (content == 1) {
+					float3 pressure = (cell.pressure);
+					float vertical_scale = max(abs(pressure.y) - abs(cell.hardness), 0.0f) / (float)abs(cell.hardness) /*((float) cell.massOver * _MaxSnowDensity / ( _CellSize * _CellSize))*/;
+					_Color.r = 0.0f;
+					_Color.g = lerp(0.0f, 1.0f, vertical_scale); /** (pressure.y / abs(pressure.y))*2.0f;*/
+					_Color.b = 0.0f;
 
-				_Color.a =  saturate(10.0f * abs(length(pressure)));
+					//_Color.a =  saturate(10.0f * abs(length(pressure)));
+					_Color.a = saturate(vertical_scale);
+				}
 			}
 			
 			if (_Show_Indexes) {

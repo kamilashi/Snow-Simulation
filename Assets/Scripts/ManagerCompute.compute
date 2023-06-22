@@ -6,6 +6,7 @@
 #pragma kernel ComputeForces
 #pragma kernel ApplyForces
 #pragma kernel UpdateSnowTotals
+#pragma kernel SetPressure
 #pragma kernel ClearGrid
 #include "../Scripts/Noises.cginc"
 
@@ -16,25 +17,24 @@
 struct Cell
 {
     int3 gridIndex;
+    int index;
     float3 WSposition;
-    float3 pressure;
-    float density;
     float indentAmount;
+    float3 pressure;
     float hardness;
+    float3 appliedPressure;
+    float density;
     float temperature;
     float grainSize;
     float mass;
     float massOver;
-    int index;
     int isOccupied; //TO-DO - enum here
 };
 
-struct Collider
+struct CollisionData
 {
-    float3 velocity;
-    float mass;
-    float speed;
-    float bottomSurfaceArea;
+    float3 position;
+    float3 pressure;
 };
 
 struct ColumnData
@@ -47,6 +47,7 @@ struct ColumnData
 
  RWStructuredBuffer<Cell> cellGridBuffer;
  RWStructuredBuffer<ColumnData> snowTotalsBuffer;
+ RWStructuredBuffer<CollisionData> collisionsBuffer;
 
 shared RWTexture2D<float4> GroundHeightMap;
 shared RWTexture2D<float4> Debug;
@@ -237,7 +238,7 @@ void ComputeForces(uint3 id : SV_DispatchThreadID)
         float area = cellSize * cellSize;
         float3 upPos = cell.WSposition + float3(0, cellSize, 0);
         
-        float3 appliedPressure = float3(0, 0.0f, 0);
+        float3 appliedPressure = cell.appliedPressure;
         
         if (!isWithinGrid(upPos))
         {
@@ -337,12 +338,26 @@ void UpdateSnowTotals(uint3 id : SV_DispatchThreadID)
     snowTotalsBuffer[bufferIndex] = snowColumnTotals;
 }
 
+[numthreads(1, 1, 1)]
+void SetPressure(uint3 id : SV_DispatchThreadID)
+{
+    int index = id.x;
+    CollisionData collision = collisionsBuffer[index];
+    if (isWithinGrid(collision.position))
+    {
+        int cell_index = getGridIndexFromPosition(collision.position);
+        Cell cell = cellGridBuffer[cell_index];
+        cell.appliedPressure = collision.pressure;
+        cellGridBuffer[cell_index] = cell;
+    }
+}
+
 [numthreads(10, 10, 10)]
 void ClearGrid(uint3 id : SV_DispatchThreadID)
 {
     int index = id.x + gridDimensions.x * id.y + gridDimensions.y * gridDimensions.x * id.z;
     Cell cell = cellGridBuffer[index];
-    
+    cell.appliedPressure = float3(0.0f, 0.0f, 0.0f);
     cell.indentAmount = 0.0;
     cellGridBuffer[index] = cell;
 }
