@@ -3,6 +3,7 @@ Shader "Custom/GridShader"
 
 	Properties{
 		_Color("Color", Color) = (0,0,0,1)
+		[Toggle(SHOW_Pressure)] _Paint_White("Paint White", Float) = 0
 		[Toggle(SHOW_Pressure)] _Show_Pressure("Show Pressure", Float) = 0
 		[Toggle(SHOW_SNOWPARAMS)] _Show_Density("Show Density", Float) = 0
 		[Toggle(SHOW_SNOWPARAMS)] _Show_Temperature("Show Temperature", Float) = 0
@@ -92,14 +93,30 @@ Shader "Custom/GridShader"
 			int content = cell.isOccupied;
 			float blend = 1;
 
+			if (_Paint_White) {
+				blend += _Blend_Modifier;
+
+				if (content == 1) {
+					float scale = ((float)cell.density / (float)_MaxSnowDensity) * 1.0f;
+					_Color.r = 1.0f;
+					_Color.g = 1.0f;
+					_Color.b = 1.0f;
+					_Color.a = 1.0f;
+
+				}
+				else {
+					_Color = float4(0, 0, 0, 0);
+				}
+			}
+
 			if(_Show_Density){
 				blend += _Blend_Modifier;
 
 				if (content == 1) {
 					float scale = ((float)cell.density / (float)_MaxSnowDensity) * 1.0f;
-					_Color.r = 0.0f;
-					_Color.g = 0.0f; 
-					_Color.b = lerp(0.0f, 1.0f, scale);
+					_Color.r += 0.0f;
+					_Color.g += 0.0f;
+					_Color.b += lerp(0.0f, 1.0f, scale) * 1.0f;
 					_Color.a = 1.0f;
 
 				}

@@ -21,30 +21,34 @@ public class SnowCollider : MonoBehaviour
     private int x_cells;
     private int z_cells;
 
-    // Start is called before the first frame update
-    void Start()
+    private void Awake()
     {
-        //MeshFilter mf = GetComponent<MeshFilter>();
-        //bounds = mf.sharedMesh.bounds;
-        bounds = GetComponent<Renderer>().bounds;
+        bounds = GetComponent<MeshRenderer>().bounds;
         dimensions = new Vector3(bounds.size.x, bounds.size.y, bounds.size.z);
         collisionArea = bounds.size.x * bounds.size.z;
         float force_mg = -1.0f * (mass * G);
         pressure.y = force_mg / collisionArea;
+    }
+
+    // Start is called before the first frame update
+    void Start()
+    {
 
     }
 
     // Update is called once per frame
     void Update()
     {
-        float force_mg = -1.0f * (mass * G);
-        pressure.y = force_mg / collisionArea;
-        bounds = GetComponent<Renderer>().bounds;
-        dimensions = new Vector3(bounds.size.x, bounds.size.y, bounds.size.z);
-        collisionArea = bounds.size.x * bounds.size.z;
 
         Vector3 newPosition = new Vector3(transform.position.x, heightPosition + bounds.extents.y - cellSize, transform.position.z);
         transform.SetPositionAndRotation(newPosition, Quaternion.identity);
+
+        bounds = GetComponent<MeshRenderer>().bounds;
+        dimensions = new Vector3(bounds.size.x, bounds.size.y, bounds.size.z);
+        collisionArea = bounds.size.x * bounds.size.z;
+        float force_mg = -1.0f * (mass * G);
+        pressure.y = force_mg / collisionArea;
+
         CalculateCollision();
     }
     public void SetHeight(float snowHeight)
@@ -56,10 +60,8 @@ public class SnowCollider : MonoBehaviour
     {
         Vector3 center = transform.position;
         int data_index = 0;
-        Vector3 minPos = center - bounds.extents + new Vector3(cellSize, 0, cellSize);
+        Vector3 minPos = center - bounds.extents + new Vector3(- cellSize*0.5f, 0,  cellSize * 0.5f);
 
-        //for (int k = 0; k < 2; k++)
-        //{
             for (int i = 0; i < x_cells; i++)
             {
                 for (int j = 0; j < z_cells; j++)
@@ -69,13 +71,12 @@ public class SnowCollider : MonoBehaviour
                     data_index++;
                 }
             }
-        //}
     }
     public void Init()
     {
         x_cells = Mathf.CeilToInt(bounds.size.x / cellSize);
         z_cells = Mathf.CeilToInt(bounds.size.z / cellSize);
-        cellCount = x_cells * z_cells * 1;
+        cellCount = (x_cells + 0) * (z_cells + 0);
         collisionsArray = new Manager.CollisionData[cellCount];
     }
     public Manager.CollisionData[] getCollisionData()

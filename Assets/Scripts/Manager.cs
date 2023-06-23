@@ -184,7 +184,6 @@ public class Manager : MonoBehaviour
         InitGrid();
         InitializeColliders();
         UpdateColliders();
-        //InitSnowParticles();
     }
 
     Renderer rend;
