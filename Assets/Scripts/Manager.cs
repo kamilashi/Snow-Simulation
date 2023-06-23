@@ -596,6 +596,12 @@ public class Manager : MonoBehaviour
                 
         }
 
+        if (GUI.Button(new Rect(screen_width - 110, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), "Paint White"))
+        {
+            float toggle = GridMaterial.GetFloat("_Paint_White");
+            GridMaterial.SetFloat("_Paint_White", toggle == 0.0f ? 1.0f : 0.0f);
+        }
+
         if (GUI.Button(new Rect(screen_width - 110, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), "Toggle Density"))
         {
             float toggle = GridMaterial.GetFloat("_Show_Density");

@@ -27,6 +27,7 @@ Shader "Custom/GridShader"
 
 		fixed4 _Color;
 		float3 _Position;
+		float _Paint_White;
 		float _Show_Pressure;
 		float _Show_Density;
 		float _Show_Temperature;
@@ -93,22 +94,6 @@ Shader "Custom/GridShader"
 			int content = cell.isOccupied;
 			float blend = 1;
 
-			if (_Paint_White) {
-				blend += _Blend_Modifier;
-
-				if (content == 1) {
-					float scale = ((float)cell.density / (float)_MaxSnowDensity) * 1.0f;
-					_Color.r = 1.0f;
-					_Color.g = 1.0f;
-					_Color.b = 1.0f;
-					_Color.a = 1.0f;
-
-				}
-				else {
-					_Color = float4(0, 0, 0, 0);
-				}
-			}
-
 			if(_Show_Density){
 				blend += _Blend_Modifier;
 
@@ -121,43 +106,54 @@ Shader "Custom/GridShader"
 
 				}
 				else {
+					//todo: move to separate controls
 					_Color = float4(0, 0, 0, 0);
 				}
 			}
 
 			if (_Show_Temperature) {
-				//if (content == 1) {
+				blend += _Blend_Modifier;
+
 				float scale = (cell.temperature / _MinTemperature); // 0 cel = 0; - 30 cel = 1 
 					_Color.r += lerp(0.5f, -0.5f, scale) / blend;
 					_Color.g += 0.0f;
 					_Color.b += lerp(0.0f, 0.5f, scale) / blend;
 					_Color.a = 1.0f;
-				//}
-				//else {
-				//	_Color = float4(0, 0, 0, 1);
-				//}
 			}
 
 			if (_Show_Pressure) {
+				blend += _Blend_Modifier;
+
 				if (content == 1) {
 					float3 pressure = (cell.pressure);
 					float vertical_scale = max(abs(pressure.y) - abs(cell.hardness), 0.0f) / (float)abs(cell.hardness) /*((float) cell.massOver * _MaxSnowDensity / ( _CellSize * _CellSize))*/;
-					_Color.r = 0.0f;
-					_Color.g = lerp(0.0f, 1.0f, vertical_scale); /** (pressure.y / abs(pressure.y))*2.0f;*/
-					_Color.b = 0.0f;
+					_Color.r += 0.0f;
+					_Color.g += lerp(0.0f, 1.0f, vertical_scale) / blend;
+					_Color.b += 0.0f;
 
-					//_Color.a =  saturate(10.0f * abs(length(pressure)));
 					_Color.a = saturate(vertical_scale);
+				}
+			}
+
+			if (_Paint_White) {
+				blend += _Blend_Modifier;
+
+				if (content == 1) {
+					_Color.r += 1.0f / blend;
+					_Color.g += 1.0f / blend;
+					_Color.b += 1.0f / blend;
 				}
 			}
 			
 			if (_Show_Indexes) {
-				float3 index = ((float3) cell.gridIndex/ (float) 49.0f);
-				_Color.r = index.x;
-				_Color.g = index.y;
-				_Color.b = index.z;
+				blend += _Blend_Modifier;
 
-				_Color.a = 0.5f;
+				float3 index = ((float3) cell.gridIndex/ (float) 49.0f);
+				_Color.r += index.x / blend;
+				_Color.g += index.y / blend;
+				_Color.b += index.z / blend;
+
+				_Color.a *= 0.5f;
 			}
 		#endif
 	}
