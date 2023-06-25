@@ -243,13 +243,14 @@ public class Manager : MonoBehaviour
         groundMaterial.SetTexture("_GroundHeightMap", groundHeightMapTexture);
         snowMaterial.SetBuffer("snowTotalsBuffer", snowTotalsBuffer);
         snowMaterial.SetTexture("_GroundHeightMap", groundHeightMapTexture);
+        snowMaterial.SetFloat("_SnowMaxHeight", snowAddedHeight);
 
         debugMaterial.SetTexture("_DebugMap", debugText);
 
         MeshFilter mf = GetComponent<MeshFilter>();
         Bounds bounds = mf.sharedMesh.bounds;
 
-        planeSideSize = Mathf.Abs(bounds.extents.x * 2);
+        planeSideSize = Mathf.Abs(bounds.extents.x * 2)*transform.localScale.x;
         shader.SetFloat("planeSideSize", planeSideSize);
         Vector3 boundsToWorld = transform.TransformPoint(bounds.center);
         planeCenter = new Vector3(boundsToWorld.x, boundsToWorld.y, boundsToWorld.z);
@@ -410,26 +411,8 @@ public class Manager : MonoBehaviour
                                               gridHeight);
 
         snowTotalsBuffer.GetData(snowTotalsArray);
+        snowMaterial.SetFloat("_SnowMaxHeight", snowTotalsArray[0].height);
         UpdateColliders();
-
-        //no lagrangian particles for now:
-        //shader.Dispatch(kernelCollisionDetection, Mathf.CeilToInt((float)particlesPerAxis.x / (float)snowThreadGroupSizeX),
-        //                                   Mathf.CeilToInt((float)particlesPerAxis.y / (float)snowTthreadGroupSizeY),
-        //                                   Mathf.CeilToInt((float)particlesPerAxis.z / (float)snowThreadGroupSizeZ));
-
-        //shader.Dispatch(kernelPropagateForce, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),
-        //                                   Mathf.CeilToInt((float)gridHeight / (float)gridTthreadGroupSizeY),
-        //                                   Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
-
-        //shader.Dispatch(kernelUpdateParticleVelocity, Mathf.CeilToInt((float)particlesPerAxis.x / (float)snowThreadGroupSizeX),
-        //                                   Mathf.CeilToInt((float)particlesPerAxis.y / (float)snowTthreadGroupSizeY),
-        //                                   Mathf.CeilToInt((float)particlesPerAxis.z / (float)snowThreadGroupSizeZ));
-        //shader.Dispatch(kernelUpdateParticlePosition, Mathf.CeilToInt((float)particlesPerAxis.x / (float)snowThreadGroupSizeX),
-        //                                   Mathf.CeilToInt((float)particlesPerAxis.y / (float)snowTthreadGroupSizeY),
-        //                                   Mathf.CeilToInt((float)particlesPerAxis.z / (float)snowThreadGroupSizeZ));
-        //shader.Dispatch(kernelDissipateForces, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),
-        //                                       Mathf.CeilToInt((float)gridHeight / (float)gridTthreadGroupSizeY),
-        //                                       Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
 
         //DebugPrint();
         if (showGrid)
@@ -444,10 +427,6 @@ public class Manager : MonoBehaviour
                                           Mathf.CeilToInt((float)gridHeight / (float)gridTthreadGroupSizeY),
                                            Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
 
-        //if(showSnowParticles)
-        //{
-        //    Graphics.DrawMeshInstancedIndirect(particleMesh, 0, particleMaterial, particleBounds, particleArgsBuffer);
-        //}
     }
 
     void OnDestroy()

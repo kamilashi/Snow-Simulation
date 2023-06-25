@@ -2,10 +2,11 @@ Shader "Unlit/snow"
 {
     Properties
     {
-        _SnowHeightMap("Texture", 2D) = "white" {}
-         _GroundHeightMap("Texture", 2D) = "white" {}
-        _OffsetX("Test X Offset", Range(0,100)) = 10
-        _SnowFactorMax("Snow Maxx Height Const", Range(0,100)) = 10
+        _SnowSurfaceColor("Snow Surface Color", Color) = (1,1,1,1)
+        _SnowDepthColor("Snow Depth Color", Color) = (0,0,0,1)
+        _GroundHeightMap("Texture", 2D) = "white" {}
+        //_OffsetX("Test X Offset", Range(0,100)) = 10
+        _SnowMaxHeight("Snow Max Height Const", Range(0,10)) = 10
     }
     SubShader
     {
@@ -31,17 +32,22 @@ Shader "Unlit/snow"
             {
                 float4 position : SV_POSITION;
                 float2 uv : TEXCOORD0;
-               // float snowHeight : TEXCOORD1;
+                float snowIndent : TEXCOORD1;
             };
 
             sampler2D _GroundHeightMap;
             float4 _GroundHeightMap_ST;
-            float _OffsetX;
+            float4 _SnowDepthColor;
+            float4 _SnowSurfaceColor;
+            float _SnowMaxHeight;
+            //float _OffsetX;
 
             struct ColumnData
             {
                 float height;
+                float groundHeight;
                 float mass;
+                float mass_temp;                
             };
 
             StructuredBuffer<ColumnData> snowTotalsBuffer;
@@ -55,11 +61,11 @@ Shader "Unlit/snow"
 
                 //uint index = (uint) round(saturate(max(v.uv.x, 0.15)) *( _texResolution-1)) + round(saturate(min(v.uv.y, 0.85)) * (_texResolution-1)) *_texResolution;
                 uint index = (uint) round(v.uv.x *( _texResolution-1)) + round(v.uv.y * (_texResolution-1)) *_texResolution;
-                //o.snowHeight = snowTotalsBufferOut[index].height;
                 float snowHeight = snowTotalsBuffer[index].height;
                 float groundHeight = tex2Dlod(_GroundHeightMap, float4(v.uv, 0.0, 0.0)).x;
 
                 v.position.y += groundHeight + snowHeight;
+                o.snowIndent = 1 - smoothstep(0.45, 1,saturate(snowHeight / _SnowMaxHeight));
                 o.position = UnityObjectToClipPos(v.position);
                 o.uv = v.uv;
                 return o;
@@ -67,7 +73,8 @@ Shader "Unlit/snow"
 
             fixed4 frag (v2f i) : SV_Target
             {
-                fixed4 col = fixed4(1,1,1,1);
+                float4 col = _SnowSurfaceColor;
+                col = lerp(col, _SnowDepthColor, i.snowIndent);
                 
                 return col;
             }

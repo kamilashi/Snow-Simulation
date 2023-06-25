@@ -21,13 +21,18 @@ public class SnowCollider : MonoBehaviour
     private int x_cells;
     private int z_cells;
 
-    private void Awake()
-    {
+    void UpdateAreaAndPressure() {
         bounds = GetComponent<MeshRenderer>().bounds;
-        dimensions = new Vector3(bounds.size.x, bounds.size.y, bounds.size.z);
-        collisionArea = bounds.size.x * bounds.size.z;
+        //dimensions = new Vector3(bounds.size.x * transform.localScale.x, bounds.size.y * transform.localScale.y, bounds.size.z * transform.localScale.z);
+        dimensions = new Vector3(bounds.size.x , bounds.size.y , bounds.size.z );
+        collisionArea = dimensions.x * dimensions.z;
         float force_mg = -1.0f * (mass * G);
         pressure.y = force_mg / collisionArea;
+    }
+
+    private void Awake()
+    {
+        UpdateAreaAndPressure();
     }
 
     // Start is called before the first frame update
@@ -39,16 +44,11 @@ public class SnowCollider : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-
-        Vector3 newPosition = new Vector3(transform.position.x, heightPosition + bounds.extents.y - cellSize, transform.position.z);
+        
+        Vector3 newPosition = new Vector3(transform.position.x, heightPosition + dimensions.y*0.5f - cellSize, transform.position.z);
         transform.SetPositionAndRotation(newPosition, Quaternion.identity);
 
-        bounds = GetComponent<MeshRenderer>().bounds;
-        dimensions = new Vector3(bounds.size.x, bounds.size.y, bounds.size.z);
-        collisionArea = bounds.size.x * bounds.size.z;
-        float force_mg = -1.0f * (mass * G);
-        pressure.y = force_mg / collisionArea;
-
+        UpdateAreaAndPressure();
         CalculateCollision();
     }
     public void SetHeight(float snowHeight)
@@ -60,7 +60,7 @@ public class SnowCollider : MonoBehaviour
     {
         Vector3 center = transform.position;
         int data_index = 0;
-        Vector3 minPos = center - bounds.extents + new Vector3(- cellSize*0.5f, 0,  cellSize * 0.5f);
+        Vector3 minPos = center - dimensions*0.5f + new Vector3(- cellSize*0.5f, 0,  cellSize * 0.5f);
 
             for (int i = 0; i < x_cells; i++)
             {
@@ -74,8 +74,8 @@ public class SnowCollider : MonoBehaviour
     }
     public void Init()
     {
-        x_cells = Mathf.CeilToInt(bounds.size.x / cellSize);
-        z_cells = Mathf.CeilToInt(bounds.size.z / cellSize);
+        x_cells = Mathf.CeilToInt(dimensions.x / cellSize);
+        z_cells = Mathf.CeilToInt(dimensions.z / cellSize);
         cellCount = (x_cells + 0) * (z_cells + 0);
         collisionsArray = new Manager.CollisionData[cellCount];
     }
