@@ -212,9 +212,9 @@ public class Manager : MonoBehaviour
     uint heightThreadGroupSizeY;
     uint heightThreadGroupSizeZ;
     int kernelGenerateGroundHeight;
-    int kernelInitHeight;
+    int kernelInitTotals;
     int kernelAddHeight;
-    int kernelClearHeight;
+    int kernelClearTotals;
     private void GenerateHeightMap()
     {
         snowTotalsArray = new ColumnData[snowTotalsArraySize];
@@ -223,20 +223,20 @@ public class Manager : MonoBehaviour
         
 
         kernelGenerateGroundHeight = shader.FindKernel("GenerateHeight");
-        kernelInitHeight = shader.FindKernel("InitSnowHeight");
+        kernelInitTotals = shader.FindKernel("InitSnowTotals");
         kernelAddHeight = shader.FindKernel("AddSnowHeight");
-        kernelClearHeight = shader.FindKernel("ClearSnowHeight");
+        kernelClearTotals = shader.FindKernel("ClearSnowTotals");
 
         shader.SetInt("texResolution", texResolution);
         shader.SetTexture(kernelGenerateGroundHeight, "GroundHeightMap", groundHeightMapTexture);
         shader.SetTexture(kernelGenerateGroundHeight, "Debug", debugText);
         shader.SetBuffer(kernelGenerateGroundHeight, "snowTotalsBuffer", snowTotalsBuffer);
 
-        shader.SetBuffer(kernelInitHeight, "snowTotalsBuffer", snowTotalsBuffer);
+        shader.SetBuffer(kernelInitTotals, "snowTotalsBuffer", snowTotalsBuffer);
         shader.SetBuffer(kernelAddHeight, "snowTotalsBuffer", snowTotalsBuffer);
 
         
-        shader.SetBuffer(kernelClearHeight, "snowTotalsBuffer", snowTotalsBuffer);
+        shader.SetBuffer(kernelClearTotals, "snowTotalsBuffer", snowTotalsBuffer);
 
         snowAddedHeight = snowAddedHeight - snowAddedHeight % cellSize;
         shader.SetFloat("snowAddedHeight", snowAddedHeight); //important for reconstruction
@@ -260,8 +260,8 @@ public class Manager : MonoBehaviour
         shader.GetKernelThreadGroupSizes(kernelGenerateGroundHeight, out heightThreadGroupSizeX, out heightThreadGroupSizeY, out _);
         shader.Dispatch(kernelGenerateGroundHeight, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX), Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY), 1);
 
-        shader.GetKernelThreadGroupSizes(kernelInitHeight, out heightThreadGroupSizeX, out heightThreadGroupSizeY, out _);
-        shader.Dispatch(kernelInitHeight, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX), Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY), 1);
+        shader.GetKernelThreadGroupSizes(kernelInitTotals, out heightThreadGroupSizeX, out heightThreadGroupSizeY, out _);
+        shader.Dispatch(kernelInitTotals, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX), Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY), 1);
 
     }
 
@@ -329,6 +329,7 @@ public class Manager : MonoBehaviour
                 for (int k = 0; k < gridDepth; k++)
                 {
                     Cell cell = new Cell(i ,j, k, index, freshSnowDensity, airTemperature);
+                   // cell.temperature = 0.0f - j;
                     cellGridArray[index] = cell;
                     index++;
                 }
@@ -382,7 +383,7 @@ public class Manager : MonoBehaviour
     {
         UpdateTweakParameters();
 
-        shader.Dispatch(kernelClearHeight, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX), Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY), 1);
+        shader.Dispatch(kernelClearTotals, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX), Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY), 1);
 
         shader.GetKernelThreadGroupSizes(kernelGenerateGroundHeight, out heightThreadGroupSizeX, out heightThreadGroupSizeY, out heightThreadGroupSizeZ);
         shader.Dispatch(kernePopulateGrid, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),

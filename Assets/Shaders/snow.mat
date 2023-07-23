@@ -84,6 +84,7 @@ Material:
     - _Parallax: 0.02
     - _SmoothnessTextureChannel: 0
     - _SnowFactorMax: 5
+    - _SnowMaxHeight: 0.50569135
     - _SpecularHighlights: 1
     - _SrcBlend: 1
     - _TempScale: 2.1
@@ -92,4 +93,6 @@ Material:
     m_Colors:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _SnowDepthColor: {r: 0.36854753, g: 0.6166936, b: 0.7735849, a: 1}
+    - _SnowSurfaceColor: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []
