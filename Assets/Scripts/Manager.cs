@@ -63,6 +63,7 @@ public class Manager : MonoBehaviour
         public int index;
         public Vector3 WSposition;
         public float indentAmount;
+        public float xCompressionAmount;
         public Vector3 pressure;
         public float hardness;
         public Vector3 appliedPressure;
@@ -81,6 +82,7 @@ public class Manager : MonoBehaviour
             appliedPressure = Vector3.zero;
             density = startDensity; // kg/m^3
             indentAmount = 0.0f;
+            xCompressionAmount = 0.0f;
             hardness = 0.0f;    // kg/(m*s^2)
             temperature = startTemperature;
             mass = 0.0f;
@@ -123,7 +125,7 @@ public class Manager : MonoBehaviour
     public float particleSize = 1.0f; // radius
     private int particleCount; // depends on snow height, codependent with particle size
 
-    int SIZE_CELL = 5 * sizeof(int) + 16 * sizeof(float);
+    int SIZE_CELL = 5 * sizeof(int) + 17 * sizeof(float);
     int SIZE_PARTICLE = 7 * sizeof(float);
     int SIZE_COLUMNDATA = 4 * sizeof(float);
     int SIZE_COLLISIONDATA = 6 * sizeof(float);
@@ -165,6 +167,7 @@ public class Manager : MonoBehaviour
     private int kernePopulateGrid;
     private int kernelComputeForces;
     private int kernelApplyForces;
+    private int kernelResampleDensity;
     private int kernelUpdateSnowTotals;
     private int kerneClearGrid;
 
@@ -372,6 +375,11 @@ public class Manager : MonoBehaviour
         shader.SetTexture(kernelApplyForces, "GroundHeightMap", groundHeightMapTexture);
         shader.SetBuffer(kernelApplyForces, "snowTotalsBuffer", snowTotalsBuffer);
 
+        kernelResampleDensity = shader.FindKernel("ResampleDensity");
+        shader.SetBuffer(kernelResampleDensity, "cellGridBuffer", cellGridBuffer);
+        shader.SetTexture(kernelResampleDensity, "GroundHeightMap", groundHeightMapTexture);
+        shader.SetBuffer(kernelResampleDensity, "snowTotalsBuffer", snowTotalsBuffer);
+
         kernelUpdateSnowTotals = shader.FindKernel("UpdateSnowTotals");
         shader.SetBuffer(kernelUpdateSnowTotals, "cellGridBuffer", cellGridBuffer);
         shader.SetTexture(kernelUpdateSnowTotals, "GroundHeightMap", groundHeightMapTexture);
@@ -398,6 +406,7 @@ public class Manager : MonoBehaviour
         shader.Dispatch(kernelSetPressure, collisionCellsCount, 1, 1);
         shader.Dispatch(kernelComputeForces, 50, 1, 50);
         shader.Dispatch(kernelApplyForces, 50, 1, 50); 
+        shader.Dispatch(kernelResampleDensity, 50, 1, 50); 
 
 
         //shader.Dispatch(kernelApplyForces, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),

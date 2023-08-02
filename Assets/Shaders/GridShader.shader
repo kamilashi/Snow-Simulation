@@ -59,6 +59,7 @@ Shader "Custom/GridShader"
 			int index;
 			float3 WSposition;
 			float indentAmount;
+			float xCompressionAmount;
 			float3 pressure;
 			float hardness;
 			float3 appliedPressure;
