@@ -175,7 +175,6 @@ public class Manager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-
         InitDefaultArguments();
         InitializeTweakParameters();
         UpdateTweakParameters();
@@ -398,7 +397,7 @@ public class Manager : MonoBehaviour
 
         shader.Dispatch(kernelSetPressure, collisionCellsCount, 1, 1);
         shader.Dispatch(kernelComputeForces, 50, 1, 50);
-        shader.Dispatch(kernelApplyForces, 50, 1, 50);
+        shader.Dispatch(kernelApplyForces, 50, 1, 50); 
 
 
         //shader.Dispatch(kernelApplyForces, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),

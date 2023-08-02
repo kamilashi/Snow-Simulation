@@ -375,14 +375,14 @@ MonoBehaviour:
   cellSize: 0.2
   timeScale: 0
   snowAddedHeight: 1.5
-  freshSnowDensity: 20
-  maxSnowDensity: 90
+  freshSnowDensity: 100
+  maxSnowDensity: 1000
   h_d_p: 2.24
   h_c_p: 2
-  k_d_p: 2.56
+  k_d_p: 2.76
   k_c_p: 0.54
   minSnowTemperature: -20
-  airTemperature: -20
+  airTemperature: -8.4
   groundTemperature: -30
   groundMaterial: {fileID: 2100000, guid: dc9a592f2605d0c4588833d419cc81df, type: 2}
   snowMaterial: {fileID: 2100000, guid: 1a7c1f1c2f1555e409f74a848abbac77, type: 2}
@@ -503,7 +503,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &752749709
 Transform:
   m_ObjectHideFlags: 0
@@ -704,7 +704,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &922919059
 Transform:
   m_ObjectHideFlags: 0
