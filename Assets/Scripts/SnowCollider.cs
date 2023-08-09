@@ -72,7 +72,7 @@ public class SnowCollider : MonoBehaviour
                 }
             }
     }
-    public void Init()
+    public void Initialize()
     {
         x_cells = Mathf.CeilToInt(dimensions.x / cellSize);
         z_cells = Mathf.CeilToInt(dimensions.z / cellSize);

@@ -16,8 +16,6 @@ public class Manager : MonoBehaviour
     public int texResolution;
 
     public bool showGrid = true;
-    //public bool showSnowParticles = true;
-    //public bool toggle = false;
     public Vector3 gridCenter;
     public float cellSize; // m
     private float planeSideSize;
@@ -108,6 +106,7 @@ public class Manager : MonoBehaviour
         public float mass_temp;
     };
 
+/*
     struct Particle
     {
         public Vector3 position;
@@ -123,7 +122,7 @@ public class Manager : MonoBehaviour
     };
     [Range(0.1f, 10.0f)]
     public float particleSize = 1.0f; // radius
-    private int particleCount; // depends on snow height, codependent with particle size
+    private int particleCount; // depends on snow height, codependent with particle size*/
 
     int SIZE_CELL = 5 * sizeof(int) + 17 * sizeof(float);
     int SIZE_PARTICLE = 7 * sizeof(float);
@@ -131,20 +130,20 @@ public class Manager : MonoBehaviour
     int SIZE_COLLISIONDATA = 6 * sizeof(float);
 
     Cell[] cellGridArray;
-    Particle[] particleArray;
+    //Particle[] particleArray;
     ColumnData[] snowTotalsArray;
     CollisionData[] collisionsArray; 
     int snowTotalsArraySize;
 
     ComputeBuffer cellGridBuffer;
     ComputeBuffer particleBuffer;
-    ComputeBuffer snowTotalsBuffer;
+    ComputeBuffer snowColumnsBuffer;
     ComputeBuffer collisionsBuffer;
 
     private uint[] gridArgs;
-    private uint[] particleArgs;
+   // private uint[] particleArgs;
     private ComputeBuffer gridArgsBuffer;
-    private ComputeBuffer particleArgsBuffer;
+    //private ComputeBuffer particleArgsBuffer;
     public Mesh cubeMesh
     {
      
@@ -165,10 +164,10 @@ public class Manager : MonoBehaviour
 
     Bounds cellBounds;
     private int kernePopulateGrid;
-    private int kernelComputeForces;
-    private int kernelApplyForces;
+    private int kernelComputePressures;
+    private int kernelApplyPressures;
     private int kernelResampleDensity;
-    private int kernelUpdateSnowTotals;
+    private int kernelUpdateSnowColumns;
     private int kerneClearGrid;
 
     uint gridThreadGroupSizeX;
@@ -220,8 +219,8 @@ public class Manager : MonoBehaviour
     private void GenerateHeightMap()
     {
         snowTotalsArray = new ColumnData[snowTotalsArraySize];
-        snowTotalsBuffer = new ComputeBuffer(snowTotalsArraySize, SIZE_COLUMNDATA);
-        snowTotalsBuffer.SetData(snowTotalsArray);
+        snowColumnsBuffer = new ComputeBuffer(snowTotalsArraySize, SIZE_COLUMNDATA);
+        snowColumnsBuffer.SetData(snowTotalsArray);
         
 
         kernelGenerateGroundHeight = shader.FindKernel("GenerateHeight");
@@ -232,18 +231,18 @@ public class Manager : MonoBehaviour
         shader.SetInt("texResolution", texResolution);
         shader.SetTexture(kernelGenerateGroundHeight, "GroundHeightMap", groundHeightMapTexture);
         shader.SetTexture(kernelGenerateGroundHeight, "Debug", debugText);
-        shader.SetBuffer(kernelGenerateGroundHeight, "snowTotalsBuffer", snowTotalsBuffer);
+        shader.SetBuffer(kernelGenerateGroundHeight, "snowTotalsBuffer", snowColumnsBuffer);
 
-        shader.SetBuffer(kernelInitTotals, "snowTotalsBuffer", snowTotalsBuffer);
-        shader.SetBuffer(kernelAddHeight, "snowTotalsBuffer", snowTotalsBuffer);
+        shader.SetBuffer(kernelInitTotals, "snowTotalsBuffer", snowColumnsBuffer);
+        shader.SetBuffer(kernelAddHeight, "snowTotalsBuffer", snowColumnsBuffer);
 
         
-        shader.SetBuffer(kernelClearTotals, "snowTotalsBuffer", snowTotalsBuffer);
+        shader.SetBuffer(kernelClearTotals, "snowTotalsBuffer", snowColumnsBuffer);
 
         snowAddedHeight = snowAddedHeight - snowAddedHeight % cellSize;
         shader.SetFloat("snowAddedHeight", snowAddedHeight); //important for reconstruction
         groundMaterial.SetTexture("_GroundHeightMap", groundHeightMapTexture);
-        snowMaterial.SetBuffer("snowTotalsBuffer", snowTotalsBuffer);
+        snowMaterial.SetBuffer("snowTotalsBuffer", snowColumnsBuffer);
         snowMaterial.SetTexture("_GroundHeightMap", groundHeightMapTexture);
         snowMaterial.SetFloat("_SnowMaxHeight", snowAddedHeight);
 
@@ -343,7 +342,7 @@ public class Manager : MonoBehaviour
 
         kernePopulateGrid = shader.FindKernel("PopulateGrid");
         shader.SetBuffer(kernePopulateGrid, "cellGridBuffer", cellGridBuffer);
-        shader.SetBuffer(kernePopulateGrid, "snowTotalsBuffer", snowTotalsBuffer);
+        shader.SetBuffer(kernePopulateGrid, "snowTotalsBuffer", snowColumnsBuffer);
 
         kerneClearGrid = shader.FindKernel("ClearGrid");
         shader.SetBuffer(kerneClearGrid, "cellGridBuffer", cellGridBuffer);
@@ -365,25 +364,25 @@ public class Manager : MonoBehaviour
         gridArgsBuffer.SetData(gridArgs);
         cellBounds = new Bounds(Vector3.zero, new Vector3(30, 30, 30)); //place holder
 
-        kernelComputeForces = shader.FindKernel("ComputeForces");
-        shader.SetBuffer(kernelComputeForces, "cellGridBuffer", cellGridBuffer);
-        shader.SetTexture(kernelComputeForces, "GroundHeightMap", groundHeightMapTexture);
-        shader.SetBuffer(kernelComputeForces, "snowTotalsBuffer", snowTotalsBuffer);
+        kernelComputePressures = shader.FindKernel("ComputeForces");
+        shader.SetBuffer(kernelComputePressures, "cellGridBuffer", cellGridBuffer);
+        shader.SetTexture(kernelComputePressures, "GroundHeightMap", groundHeightMapTexture);
+        shader.SetBuffer(kernelComputePressures, "snowTotalsBuffer", snowColumnsBuffer);
 
-        kernelApplyForces = shader.FindKernel("ApplyForces");
-        shader.SetBuffer(kernelApplyForces, "cellGridBuffer", cellGridBuffer);
-        shader.SetTexture(kernelApplyForces, "GroundHeightMap", groundHeightMapTexture);
-        shader.SetBuffer(kernelApplyForces, "snowTotalsBuffer", snowTotalsBuffer);
+        kernelApplyPressures = shader.FindKernel("ApplyForces");
+        shader.SetBuffer(kernelApplyPressures, "cellGridBuffer", cellGridBuffer);
+        shader.SetTexture(kernelApplyPressures, "GroundHeightMap", groundHeightMapTexture);
+        shader.SetBuffer(kernelApplyPressures, "snowTotalsBuffer", snowColumnsBuffer);
 
         kernelResampleDensity = shader.FindKernel("ResampleDensity");
         shader.SetBuffer(kernelResampleDensity, "cellGridBuffer", cellGridBuffer);
         shader.SetTexture(kernelResampleDensity, "GroundHeightMap", groundHeightMapTexture);
-        shader.SetBuffer(kernelResampleDensity, "snowTotalsBuffer", snowTotalsBuffer);
+        shader.SetBuffer(kernelResampleDensity, "snowTotalsBuffer", snowColumnsBuffer);
 
-        kernelUpdateSnowTotals = shader.FindKernel("UpdateSnowTotals");
-        shader.SetBuffer(kernelUpdateSnowTotals, "cellGridBuffer", cellGridBuffer);
-        shader.SetTexture(kernelUpdateSnowTotals, "GroundHeightMap", groundHeightMapTexture);
-        shader.SetBuffer(kernelUpdateSnowTotals, "snowTotalsBuffer", snowTotalsBuffer);
+        kernelUpdateSnowColumns = shader.FindKernel("UpdateSnowTotals");
+        shader.SetBuffer(kernelUpdateSnowColumns, "cellGridBuffer", cellGridBuffer);
+        shader.SetTexture(kernelUpdateSnowColumns, "GroundHeightMap", groundHeightMapTexture);
+        shader.SetBuffer(kernelUpdateSnowColumns, "snowTotalsBuffer", snowColumnsBuffer);
     }
         // Update is called once per frame
         void Update()
@@ -404,8 +403,8 @@ public class Manager : MonoBehaviour
         //                                      Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
 
         shader.Dispatch(kernelSetPressure, collisionCellsCount, 1, 1);
-        shader.Dispatch(kernelComputeForces, 2, 1, 2);
-        shader.Dispatch(kernelApplyForces, 5, 5, 5); 
+        shader.Dispatch(kernelComputePressures, 2, 1, 2);
+        shader.Dispatch(kernelApplyPressures, 5, 5, 5); 
         shader.Dispatch(kernelResampleDensity, 2, 1, 2);
 
 
@@ -414,12 +413,12 @@ public class Manager : MonoBehaviour
         //                                      Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
 
 
-        shader.Dispatch(kernelUpdateSnowTotals, 32, 32, 1);
+        shader.Dispatch(kernelUpdateSnowColumns, 32, 32, 1);
         //shader.Dispatch(kernelUpdateSnowTotals, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX),
         //                                     Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY),
         //                                      gridHeight);
 
-        snowTotalsBuffer.GetData(snowTotalsArray);
+        snowColumnsBuffer.GetData(snowTotalsArray);
         snowMaterial.SetFloat("_SnowMaxHeight", snowTotalsArray[0].height);
         UpdateColliders();
 
@@ -449,21 +448,21 @@ public class Manager : MonoBehaviour
             gridArgsBuffer.Release();
         }
 
-        snowTotalsBuffer.Release();
+        snowColumnsBuffer.Release();
 
         //particleBuffer.Release();
 
-        if (particleArgsBuffer != null)
+       /* if (particleArgsBuffer != null)
         {
             //Debug.Log("args buffer released " + argsBuffer);
             particleArgsBuffer.Release();
-        }
+        }*/
     }
 
     void InitializeColliders()
     {
         int colliderCount = colliders.transform.childCount;
-        snowTotalsBuffer.GetData(snowTotalsArray);
+        snowColumnsBuffer.GetData(snowTotalsArray);
 
         for (int i = 0; i < colliderCount; i++)
         {
@@ -472,7 +471,7 @@ public class Manager : MonoBehaviour
             int index = WorldPosToArrayIndex(collider.transform.position);
             float height = snowTotalsArray[index].height;
             collider.SetHeight(height);
-            collider.Init();
+            collider.Initialize();
             collisionCellsCount += collider.cellCount;
         }
 
@@ -526,7 +525,7 @@ public class Manager : MonoBehaviour
 
         // left screen ui
 
-
+        GUI.Label(new Rect(40, screep_pos_y_from_top + ui_element_no * vertical_interval, 100, 30), "Time scale");
         timeScale = GUI.HorizontalSlider(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), timeScale, 0.0f, 100.0f);
 
         if (GUI.Button(new Rect(10 + 100 + 10, screep_pos_y_from_top + (ui_element_no-1) * vertical_interval, 100, 30), "Start time"))
@@ -550,6 +549,8 @@ public class Manager : MonoBehaviour
             Debug.Log("Mass of center column 512x512: " + mass);
         }
 
+
+        GUI.Label(new Rect(40, screep_pos_y_from_top + ui_element_no * vertical_interval, 100, 30), "Added Snow Height");
         snowAddedHeight = GUI.HorizontalSlider(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), snowAddedHeight, 0.0f, 8.0f);
         snowAddedHeight = snowAddedHeight - snowAddedHeight % cellSize;
 
@@ -610,7 +611,7 @@ public class Manager : MonoBehaviour
 
     }
 
-    void DebugPrint()
+    /*void DebugPrint()
     {
         int index = 0;
         for (int i = 0; i < gridWidth; i++)
@@ -625,5 +626,5 @@ public class Manager : MonoBehaviour
                 }
             }
         }
-    }
+    }*/
 }

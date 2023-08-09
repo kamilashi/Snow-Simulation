@@ -221,10 +221,11 @@ void PopulateGrid(uint3 id : SV_DispatchThreadID)
         //cell.hardness = pow(density, h_d_p) * pow(0.1, h_c_p) * pow(-temperature, h_d_p) * pow(0.1, h_c_p);
         //cell.hardness = - 0.16599 + 0.542153 * density - 0.08925*temperature + 0.447667*pow(density, 2)+ 0.159256*density*temperature - 0.01336*pow(temperature, 2) + 0.261043*pow(temperature,3) - 0.15863*pow(density, 2)*temperature + 0.022601*density*pow(temperature, 2) - 0.00032*pow(temperature, 3);
        
-        float unit_conversion = pow(10.0f, -3.0f);
+        //float unit_conversion = pow(10.0f, -3.0f);
+        float unit_conversion = 1;
         density *= unit_conversion;
-        density = abs(density);
-        temperature = abs(temperature);
+        //density = abs(density);
+        //temperature = abs(temperature);
         cell.hardness = -0.16599 + 0.542153 * density - 0.08925 * temperature + 0.447667 * pow(density, 2) + 0.159256 * density * temperature - 0.01336 * pow(temperature, 2) + 0.261043 * pow(temperature, 3) - 0.15863 * pow(density, 2) * temperature + 0.022601 * density * pow(temperature, 2) - 0.00032 * pow(temperature, 3);
        
         //cell.hardness = -0.16599 + 0.542153 * density * unit_conversion - 0.08925 * temperature + 0.447667 * pow((density * unit_conversion), 2) + 0.159256 * (density * unit_conversion) * temperature - 0.01336 * pow(temperature, 2) + 0.261043 * pow(temperature, 3) - 0.15863 * pow((density * unit_conversion), 2) * temperature + 0.022601 * (density * unit_conversion) * pow(temperature, 2) - 0.00032 * pow(temperature, 3);
