@@ -11,6 +11,7 @@ Material:
   m_Shader: {fileID: 4800000, guid: 7bed9336c28a00c42870d1d5cd6d9bf0, type: 3}
   m_ValidKeywords: []
   m_InvalidKeywords:
+  - ISOLATE_SNOW
   - SHOW_CNOWPARAMS
   - SHOW_Pressure
   m_LightmapFlags: 4
@@ -72,16 +73,17 @@ Material:
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 1
+    - _Isolate_Snow: 1
     - _MaxDensity: 100
     - _Metallic: 0
     - _Mode: 0
     - _OcclusionStrength: 1
     - _Paint_White: 0
     - _Parallax: 0.02
-    - _Show_Density: 1
+    - _Show_Density: 0
     - _Show_Force: 0
     - _Show_Indexes: 0
-    - _Show_Pressure: 0
+    - _Show_Pressure: 1
     - _Show_SnowParams: 1
     - _Show_Temperature: 0
     - _Show_Velocity: 0

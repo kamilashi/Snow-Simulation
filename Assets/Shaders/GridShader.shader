@@ -8,6 +8,7 @@ Shader "Custom/GridShader"
 		[Toggle(SHOW_SNOWPARAMS)] _Show_Density("Show Density", Float) = 0
 		[Toggle(SHOW_SNOWPARAMS)] _Show_Temperature("Show Temperature", Float) = 0
 		[Toggle(SHOW_INDEXES)] _Show_Indexes("Show Indexes", Float) = 0
+		[Toggle(ISOLATE_SNOW)] _Isolate_Snow("Isolte Snow", Float) = 0
 		_Blend_Modifier("Blend Modifier", Float) = 1
 	}
 
@@ -32,6 +33,7 @@ Shader "Custom/GridShader"
 		float _Show_Density;
 		float _Show_Temperature;
 		float _Show_Indexes;
+		float _Isolate_Snow;
 		float _CellSize;
 		float _Metallic;
 
@@ -114,12 +116,14 @@ Shader "Custom/GridShader"
 
 			if (_Show_Temperature) {
 				blend += _Blend_Modifier;
-
-				float scale = (cell.temperature / _MinTemperature); // 0 cel = 0; - 30 cel = 1 
+				if (content == -2) { _Color.a = 0.0f; }
+				else {
+					float scale = (cell.temperature / _MinTemperature); // 0 cel = 0; - 30 cel = 1 
 					_Color.r += lerp(0.5f, -0.5f, scale) / blend;
 					_Color.g += 0.0f;
 					_Color.b += lerp(0.0f, 0.5f, scale) / blend;
 					_Color.a = 1.0f;
+				}
 			}
 
 			if (_Show_Pressure) {
@@ -134,6 +138,7 @@ Shader "Custom/GridShader"
 
 					_Color.a = saturate(vertical_scale);
 				}
+				
 			}
 
 			if (_Paint_White) {
@@ -155,6 +160,13 @@ Shader "Custom/GridShader"
 				_Color.b += index.z / blend;
 
 				_Color.a *= 0.5f;
+			}
+
+			if (_Isolate_Snow) {
+
+				if (content != 1) {
+					_Color.a = 0.0f;
+				}
 			}
 		#endif
 	}

@@ -159,10 +159,10 @@ void GenerateHeight(uint3 id : SV_DispatchThreadID)
     //float heightMap = SimpleNoise(uv - uvOffset, 5) * 2.0f;
     
     //float heightMap = SimpleNoise(uv, 5) * 2.0f;
-    float heightMap = 1.0f;
-    GroundHeightMap[id.xy] = float4(heightMap.xxx, 1.0f);
+    float heightMap = 0.0f;
+    GroundHeightMap[id.xy] = float4(heightMap.xxx, 0.0f);
     snowTotalsBuffer[indexTextToArray(id.xy)].groundHeight = heightMap;
-    Debug[id.xy] = float4(heightMap.xxx, 1.0f);
+    Debug[id.xy] = float4(heightMap.xxx, 0.0f);
 }
 
 [numthreads(32, 32, 1)]

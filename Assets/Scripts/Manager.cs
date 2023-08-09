@@ -5,6 +5,7 @@ using UnityEngine;
 using Unity.Collections;
 using UnityEngine.Rendering;
 
+//[ExecuteInEditMode]
 public class Manager : MonoBehaviour
 {
     public GameObject cameras;
@@ -24,18 +25,18 @@ public class Manager : MonoBehaviour
     [Range(0.0f, 100.0f)]
     public float timeScale = 0.0f;
     [Range(0.0f, 8.0f)]
-    public float snowAddedHeight = 0.5f;
+    public float snowAddedHeight = 6.0f;
     public float freshSnowDensity = 20f; //kg/m^3
-    public float maxSnowDensity = 30.0f; //kg/m^3
+    public float maxSnowDensity = 100.0f; //kg/m^3
 
     [Range(0.0f, 10.0f)]
-    public float h_d_p = 2.24f;
+    private float h_d_p = 2.24f;
     [Range(0.0f, 10.0f)]
-    public float h_c_p = 2.0f;
+    private float h_c_p = 2.0f;
     [Range(0.0f, 10.0f)]
-    public float k_d_p = 2.56f;
+    public float k_d_p = 3.56f;
     [Range(0.0f, 10.0f)]
-    public float k_c_p = 0.54f;
+    private float k_c_p = 0.54f;
 
     public float minSnowTemperature = -20.0f; //degree celcius
     [Range(-20.0f, -1.0f)]
@@ -273,6 +274,7 @@ public class Manager : MonoBehaviour
         gridHeight = 50;
         gridDepth = 50;
         snowTotalsArraySize = texResolution * texResolution;
+        timeScale = 0.0f;
     }
 
     private void InitializeTweakParameters()
@@ -534,8 +536,9 @@ public class Manager : MonoBehaviour
         //if (GUI.Button(new Rect(10 + element_width + 10, screep_pos_y_from_top + (ui_element_no-1) * vertical_interval, element_width, 30), "Start time"))
         if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Start time"))
         {
-            timeScale = 0.1f;
-            Debug.Log("Time set to " + timeScale);
+            //timeScale = 0.1f;
+            timeScale = 1.0f;
+            Debug.Log("Time scale set to " + timeScale);
         }
 
         if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Get Height"))
