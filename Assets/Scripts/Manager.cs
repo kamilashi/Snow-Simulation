@@ -515,8 +515,10 @@ public class Manager : MonoBehaviour
         return index;
     }
 
+    [ExecuteInEditMode]
     void OnGUI()
     {
+        float element_width = 100;
         float vertical_interval = 35;
         float screep_pos_y_from_top = 35;
         int ui_element_no = 0;
@@ -525,16 +527,18 @@ public class Manager : MonoBehaviour
 
         // left screen ui
 
-        GUI.Label(new Rect(40, screep_pos_y_from_top + ui_element_no * vertical_interval, 100, 30), "Time scale");
-        timeScale = GUI.HorizontalSlider(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), timeScale, 0.0f, 100.0f);
+        //GUI.Label(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Time scale");
+        GUI.Label(new Rect(10 + element_width + 10, screep_pos_y_from_top + (ui_element_no) * vertical_interval, element_width, 30), "Time scale");
+        timeScale = GUI.HorizontalSlider(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), timeScale, 0.0f, element_width);
 
-        if (GUI.Button(new Rect(10 + 100 + 10, screep_pos_y_from_top + (ui_element_no-1) * vertical_interval, 100, 30), "Start time"))
+        //if (GUI.Button(new Rect(10 + element_width + 10, screep_pos_y_from_top + (ui_element_no-1) * vertical_interval, element_width, 30), "Start time"))
+        if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Start time"))
         {
             timeScale = 0.1f;
             Debug.Log("Time set to " + timeScale);
         }
 
-        if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), "Get Height"))
+        if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Get Height"))
         {
 
             int index = 512 + texResolution * 512;
@@ -542,7 +546,7 @@ public class Manager : MonoBehaviour
             Debug.Log("Height of center column 512x512: " + height);
         }
 
-        if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), "Get Mass"))
+        if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Get Mass"))
         {
             int index = 512 + texResolution * 512;
             float mass = snowTotalsArray[index].mass;
@@ -550,11 +554,11 @@ public class Manager : MonoBehaviour
         }
 
 
-        GUI.Label(new Rect(40, screep_pos_y_from_top + ui_element_no * vertical_interval, 100, 30), "Added Snow Height");
-        snowAddedHeight = GUI.HorizontalSlider(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), snowAddedHeight, 0.0f, 8.0f);
+        GUI.Label(new Rect(10 + element_width+10, screep_pos_y_from_top + ui_element_no * vertical_interval, element_width, 30), "Added Snow Height");
+        snowAddedHeight = GUI.HorizontalSlider(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), snowAddedHeight, 0.0f, 8.0f);
         snowAddedHeight = snowAddedHeight - snowAddedHeight % cellSize;
 
-        if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), "Add Snow"))
+        if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Add Snow"))
         {
             shader.SetFloat("snowAddedHeight", snowAddedHeight); 
             shader.SetFloat("airTemperature", airTemperature); 
@@ -562,12 +566,12 @@ public class Manager : MonoBehaviour
             Debug.Log("Adding " + snowAddedHeight + " meters of snow");
         }
 
-        airTemperature = GUI.HorizontalSlider(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), airTemperature, minSnowTemperature, 0.0f);
+        airTemperature = GUI.HorizontalSlider(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), airTemperature, minSnowTemperature, 0.0f);
 
         // right screen ui
         ui_element_no = 0;
 
-        if (GUI.Button(new Rect(screen_width - 110, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), "Switch Camera"))
+        if (GUI.Button(new Rect(screen_width - element_width - 10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Switch Camera"))
         {
             int cameraCount = cameras.transform.childCount;
             activeCameraNo++;
@@ -585,25 +589,26 @@ public class Manager : MonoBehaviour
                 
         }
 
-        if (GUI.Button(new Rect(screen_width - 110, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), "Paint White"))
+        if (GUI.Button(new Rect(screen_width - element_width - 10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Paint White"))
         {
             float toggle = GridMaterial.GetFloat("_Paint_White");
             GridMaterial.SetFloat("_Paint_White", toggle == 0.0f ? 1.0f : 0.0f);
         }
 
-        if (GUI.Button(new Rect(screen_width - 110, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), "Toggle Density"))
+        GUI.Label(new Rect(screen_width - element_width - 10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Toggle:");
+        if (GUI.Button(new Rect(screen_width - element_width - 10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Density"))
         {
             float toggle = GridMaterial.GetFloat("_Show_Density");
             GridMaterial.SetFloat("_Show_Density", toggle == 0.0f ? 1.0f : 0.0f);
         }
 
-        if (GUI.Button(new Rect(screen_width - 110, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), "Toggle Temperature"))
+        if (GUI.Button(new Rect(screen_width - element_width - 10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Temperature"))
         {
             float toggle = GridMaterial.GetFloat("_Show_Temperature");
             GridMaterial.SetFloat("_Show_Temperature", toggle == 0.0f ? 1.0f : 0.0f);
         }
 
-        if (GUI.Button(new Rect(screen_width - 110, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 100, 30), "Toggle Pressure"))
+        if (GUI.Button(new Rect(screen_width - element_width - 10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Pressure"))
         {
             float toggle = GridMaterial.GetFloat("_Show_Pressure");
             GridMaterial.SetFloat("_Show_Pressure", toggle == 0.0f ? 1.0f : 0.0f);
