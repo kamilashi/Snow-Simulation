@@ -14,6 +14,7 @@ Material:
   - ISOLATE_SNOW
   - SHOW_CNOWPARAMS
   - SHOW_Pressure
+  - SHOW_SNOWPARAMS
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 1
   m_DoubleSidedGI: 0
@@ -80,10 +81,10 @@ Material:
     - _OcclusionStrength: 1
     - _Paint_White: 0
     - _Parallax: 0.02
-    - _Show_Density: 0
+    - _Show_Density: 1
     - _Show_Force: 0
     - _Show_Indexes: 0
-    - _Show_Pressure: 1
+    - _Show_Pressure: 0
     - _Show_SnowParams: 1
     - _Show_Temperature: 0
     - _Show_Velocity: 0

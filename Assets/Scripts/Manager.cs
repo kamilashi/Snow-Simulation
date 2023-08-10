@@ -275,6 +275,7 @@ public class Manager : MonoBehaviour
         gridDepth = 50;
         snowTotalsArraySize = texResolution * texResolution;
         timeScale = 0.0f;
+        time = 0.0f;
     }
 
     private void InitializeTweakParameters()
@@ -311,8 +312,8 @@ public class Manager : MonoBehaviour
         shader.SetFloat("k_c_p", k_c_p);
 
         shader.SetFloat("deltaTime", Time.deltaTime);
-        shader.SetFloat("time", time += Time.deltaTime);
         shader.SetFloat("timeScale", timeScale);
+        shader.SetFloat("time", time += Time.deltaTime * timeScale);
 
         snowAddedHeight = snowAddedHeight - snowAddedHeight % cellSize;
         shader.SetFloat("snowAddedHeight", snowAddedHeight);
@@ -531,6 +532,7 @@ public class Manager : MonoBehaviour
 
         //GUI.Label(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Time scale");
         GUI.Label(new Rect(10 + element_width + 10, screep_pos_y_from_top + (ui_element_no) * vertical_interval, element_width, 30), "Time scale");
+        GUI.Label(new Rect((screen_width- element_width) / 3, screep_pos_y_from_top + (ui_element_no) * vertical_interval, 3*element_width, 30), "Simulation time: "+ time);
         timeScale = GUI.HorizontalSlider(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), timeScale, 0.0f, element_width);
 
         //if (GUI.Button(new Rect(10 + element_width + 10, screep_pos_y_from_top + (ui_element_no-1) * vertical_interval, element_width, 30), "Start time"))
@@ -557,7 +559,7 @@ public class Manager : MonoBehaviour
         }
 
 
-        GUI.Label(new Rect(10 + element_width+10, screep_pos_y_from_top + ui_element_no * vertical_interval, element_width, 30), "Added Snow Height");
+        GUI.Label(new Rect(10 + element_width+10, screep_pos_y_from_top + ui_element_no * vertical_interval, element_width, 60), "Add Snow Height: " + snowAddedHeight + " m.");
         snowAddedHeight = GUI.HorizontalSlider(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), snowAddedHeight, 0.0f, 8.0f);
         snowAddedHeight = snowAddedHeight - snowAddedHeight % cellSize;
 
@@ -569,8 +571,15 @@ public class Manager : MonoBehaviour
             Debug.Log("Adding " + snowAddedHeight + " meters of snow");
         }
 
+        GUI.Label(new Rect(10 + element_width + 10, screep_pos_y_from_top + ui_element_no * vertical_interval, element_width, 60), "Air temperature: " + airTemperature + " deg. C");
         airTemperature = GUI.HorizontalSlider(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), airTemperature, minSnowTemperature, 0.0f);
+        airTemperature = Mathf.Round(airTemperature);
 
+        if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Reset"))
+        {
+            Reset();
+
+        }
         // right screen ui
         ui_element_no = 0;
 
@@ -617,6 +626,19 @@ public class Manager : MonoBehaviour
             GridMaterial.SetFloat("_Show_Pressure", toggle == 0.0f ? 1.0f : 0.0f);
         }
 
+    }
+
+    private void Reset()
+    {
+        OnDestroy();
+        InitDefaultArguments();
+        InitializeTweakParameters();
+        UpdateTweakParameters();
+        CreateTextures();
+        GenerateHeightMap();
+        InitGrid();
+        InitializeColliders();
+        UpdateColliders();
     }
 
     /*void DebugPrint()
