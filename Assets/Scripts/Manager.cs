@@ -404,8 +404,8 @@ public class Manager : MonoBehaviour
         //shader.Dispatch(kernelComputeForces, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),
         //                                      Mathf.CeilToInt((float)gridHeight / (float)gridTthreadGroupSizeY),
         //                                      Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
-
-        shader.Dispatch(kernelSetPressure, collisionCellsCount, 1, 1);
+        if (colliders.activeSelf) { shader.Dispatch(kernelSetPressure, collisionCellsCount, 1, 1); }
+        
         shader.Dispatch(kernelComputePressures, 2, 1, 2);
         shader.Dispatch(kernelApplyPressures, 5, 5, 5); 
         shader.Dispatch(kernelResampleDensity, 2, 1, 2);
@@ -423,7 +423,8 @@ public class Manager : MonoBehaviour
 
         snowColumnsBuffer.GetData(snowTotalsArray);
         snowMaterial.SetFloat("_SnowMaxHeight", snowTotalsArray[0].height);
-        UpdateColliders();
+
+        if (colliders.activeSelf) { UpdateColliders(); }
 
         //DebugPrint();
         if (showGrid)
@@ -575,10 +576,33 @@ public class Manager : MonoBehaviour
         airTemperature = GUI.HorizontalSlider(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), airTemperature, minSnowTemperature, 0.0f);
         airTemperature = Mathf.Round(airTemperature);
 
+        if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 3*element_width, 30), "Init temp grad. bottom-up"))
+        {
+            snowAddedHeight = 0.0f;
+            airTemperature = -1.0f;
+            shader.SetFloat("snowAddedHeight", snowAddedHeight);
+            shader.SetFloat("airTemperature", airTemperature);
+            Reset();
+
+            snowAddedHeight = 0.8f;
+            shader.SetFloat("snowAddedHeight", snowAddedHeight);
+
+            for (int i = 0; i < 7; i++) {
+                airTemperature -= 2.0f;
+                shader.SetFloat("airTemperature", airTemperature); 
+                shader.Dispatch(kernelAddHeight, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX), Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY), 1);
+                Debug.Log("Adding " + snowAddedHeight + " meters of snow");
+            };
+        }
+
         if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Reset"))
         {
             Reset();
+        }
 
+        if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Toggle Colliders"))
+        {
+            ToggleColliders();
         }
         // right screen ui
         ui_element_no = 0;
@@ -627,7 +651,15 @@ public class Manager : MonoBehaviour
         }
 
     }
+    private void ToggleColliders()
+    {
+        if (colliders.activeSelf)
+        {
+            colliders.SetActive(false);
+        }
+        else { colliders.SetActive(true); }
 
+    }
     private void Reset()
     {
         OnDestroy();
