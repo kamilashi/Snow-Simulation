@@ -391,7 +391,7 @@ public class Manager : MonoBehaviour
         void Update()
     {
         UpdateTweakParameters();
-
+        // calculate groups only once
         shader.Dispatch(kernelClearTotals, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX), Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY), 1);
 
         shader.GetKernelThreadGroupSizes(kernelGenerateGroundHeight, out heightThreadGroupSizeX, out heightThreadGroupSizeY, out heightThreadGroupSizeZ);
@@ -404,7 +404,7 @@ public class Manager : MonoBehaviour
         //shader.Dispatch(kernelComputeForces, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),
         //                                      Mathf.CeilToInt((float)gridHeight / (float)gridTthreadGroupSizeY),
         //                                      Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
-        if (colliders.activeSelf) { shader.Dispatch(kernelSetPressure, collisionCellsCount, 1, 1); }
+        if (colliders.activeSelf) shader.Dispatch(kernelSetPressure, collisionCellsCount, 1, 1); 
         
         shader.Dispatch(kernelComputePressures, 2, 1, 2);
         shader.Dispatch(kernelApplyPressures, 5, 5, 5); 
@@ -423,6 +423,7 @@ public class Manager : MonoBehaviour
 
         snowColumnsBuffer.GetData(snowTotalsArray);
         snowMaterial.SetFloat("_SnowMaxHeight", snowTotalsArray[0].height);
+        //propertyToId instead of strings
 
         if (colliders.activeSelf) { UpdateColliders(); }
 
@@ -430,6 +431,7 @@ public class Manager : MonoBehaviour
         if (showGrid)
         {
             Graphics.DrawMeshInstancedIndirect(cubeMesh, 0, GridMaterial, cellBounds, gridArgsBuffer);
+            //inside shader - draw procedural
         }
 
 
@@ -576,6 +578,7 @@ public class Manager : MonoBehaviour
         airTemperature = GUI.HorizontalSlider(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), airTemperature, minSnowTemperature, 0.0f);
         airTemperature = Mathf.Round(airTemperature);
 
+/*
         if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 3*element_width, 30), "Init temp grad. bottom-up"))
         {
             snowAddedHeight = 0.0f;
@@ -593,7 +596,7 @@ public class Manager : MonoBehaviour
                 shader.Dispatch(kernelAddHeight, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX), Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY), 1);
                 Debug.Log("Adding " + snowAddedHeight + " meters of snow");
             };
-        }
+        }*/
 
         if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Reset"))
         {
