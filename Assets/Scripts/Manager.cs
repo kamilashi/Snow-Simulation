@@ -8,20 +8,29 @@ using UnityEngine.Rendering;
 //[ExecuteInEditMode]
 public class Manager : MonoBehaviour
 {
+    // for switching the scene cameras:
     public GameObject cameras;
     public GameObject colliders;
     private int activeCameraNo = 0;
 
+    // main compute shader:
     public ComputeShader shader;
 
+    // height map parameters:
     public int texResolution;
 
+    // grid parameters:
+    int gridWidth;
+    int gridHeight;
+    int gridDepth;
+    int gridCellCount;
     public bool showGrid = true;
     public Vector3 gridCenter;
-    public float cellSize; // m
-    private float planeSideSize;
-    private Vector3 planeCenter;
+    public float cellSize; // in meters
+    float planeSideSize;
+    Vector3 planeCenter;
 
+    // simulation parameters:
     [Range(0.0f, 100.0f)]
     public float timeScale = 0.0f;
     [Range(0.0f, 8.0f)]
@@ -29,33 +38,74 @@ public class Manager : MonoBehaviour
     public float freshSnowDensity = 20f; //kg/m^3
     public float maxSnowDensity = 100.0f; //kg/m^3
 
-    [Range(0.0f, 10.0f)]
-    private float h_d_p = 2.24f;
-    [Range(0.0f, 10.0f)]
-    private float h_c_p = 2.0f;
+    //collision paraeters:
+    int collisionCellsCount;
+
+    //[Range(0.0f, 10.0f)]
+    //private float h_d_p = 2.24f;
+    //[Range(0.0f, 10.0f)]
+    //private float h_c_p = 2.0f;
     [Range(0.0f, 10.0f)]
     public float k_d_p = 3.56f;
     [Range(0.0f, 10.0f)]
     private float k_c_p = 0.54f;
-
     public float minSnowTemperature = -20.0f; //degree celcius
     [Range(-20.0f, -1.0f)]
     public float airTemperature = -3.0f; //kg/m^3
     public float groundTemperature = -30.0f; //kg/m^3
+    private float time = 0.0f;
 
-    private float time = 0.0f; 
-
-    private int gridWidth;
-    private int gridHeight;
-    private int gridDepth;
-
+    // rendering related:
+    Renderer rend;
+    RenderTexture groundHeightMapTexture;
+    RenderTexture snowHeightMapTexture;
+    RenderTexture debugText;
     public Material groundMaterial;
     public Material snowMaterial;
     public Material debugMaterial;
     public Material particleMaterial;
     public Material GridMaterial;
 
-    //TODO: move structs to a separate DataLookup file
+    // compute shader related:
+    int SIZE_CELL = 5 * sizeof(int) + 17 * sizeof(float);
+    int SIZE_COLUMNDATA = 4 * sizeof(float);
+    int SIZE_COLLISIONDATA = 6 * sizeof(float);
+
+    Cell[] cellGridArray;
+    ColumnData[] snowTotalsArray;
+    CollisionData[] collisionsArray;
+    int snowTotalsArraySize;
+
+    ComputeBuffer cellGridBuffer;
+    ComputeBuffer snowColumnsBuffer;
+    ComputeBuffer collisionsBuffer;
+
+    private uint[] gridArgs;
+    private ComputeBuffer gridArgsBuffer;
+
+    Bounds cellBounds;
+
+    int kernelGenerateGroundHeight;
+    int kernelInitTotals;
+    int kernelAddHeight;
+    int kernelClearTotals;
+    int kernelSetPressure;
+    int kernePopulateGrid;
+    int kernelComputePressures;
+    int kernelApplyPressures;
+    int kernelResampleDensity;
+    int kernelUpdateSnowColumns;
+    int kerneClearGrid;
+
+    uint gridThreadGroupSizeX;
+    uint gridTthreadGroupSizeY;
+    uint gridThreadGroupSizeZ;
+    Vector3Int gridThreadCalls;
+    uint heightThreadGroupSizeX;
+    uint heightThreadGroupSizeY;
+    Vector3Int heightMapThreadCalls;
+
+    // data structs:
     struct Cell
     {
         public Vector3Int gridIndex;
@@ -71,8 +121,7 @@ public class Manager : MonoBehaviour
         public float grainSize;
         public float mass;
         public float massOver;
-        public int isOccupied; //TO-DO - enum here
-
+        public int isOccupied;
         public Cell(int gridX, int gridY, int gridZ, int cubeIndex, float startDensity, float startTemperature)
         {
             gridIndex = new Vector3Int(gridX, gridY, gridZ);
@@ -96,8 +145,6 @@ public class Manager : MonoBehaviour
         public Vector3 position;
         public Vector3 pressure;
     };
-    private int collisionCellsCount;
-    private int kernelSetPressure;
 
     struct ColumnData
     {
@@ -106,74 +153,15 @@ public class Manager : MonoBehaviour
         public float mass;
         public float mass_temp;
     };
-
-/*
-    struct Particle
-    {
-        public Vector3 position;
-        public Vector3 velocity;
-        public float size;
-
-        public Particle( float sideSize)
-        {
-            position = Vector3.zero;
-            velocity = Vector3.zero;
-            size = sideSize; //radius?
-        }
-    };
-    [Range(0.1f, 10.0f)]
-    public float particleSize = 1.0f; // radius
-    private int particleCount; // depends on snow height, codependent with particle size*/
-
-    int SIZE_CELL = 5 * sizeof(int) + 17 * sizeof(float);
-    int SIZE_PARTICLE = 7 * sizeof(float);
-    int SIZE_COLUMNDATA = 4 * sizeof(float);
-    int SIZE_COLLISIONDATA = 6 * sizeof(float);
-
-    Cell[] cellGridArray;
-    //Particle[] particleArray;
-    ColumnData[] snowTotalsArray;
-    CollisionData[] collisionsArray; 
-    int snowTotalsArraySize;
-
-    ComputeBuffer cellGridBuffer;
-    ComputeBuffer particleBuffer;
-    ComputeBuffer snowColumnsBuffer;
-    ComputeBuffer collisionsBuffer;
-
-    private uint[] gridArgs;
-   // private uint[] particleArgs;
-    private ComputeBuffer gridArgsBuffer;
-    //private ComputeBuffer particleArgsBuffer;
+   
     public Mesh cubeMesh
     {
-     
         get
         {
            return CjLib.PrimitiveMeshFactory.BoxFlatShaded();
         }
     }
-    //public Mesh particleMesh;
-    public Mesh particleMesh
-    {
-        get
-        {
-            return CjLib.PrimitiveMeshFactory.SphereFlatShaded(6, 6);
-        }
-    }
 
-
-    Bounds cellBounds;
-    private int kernePopulateGrid;
-    private int kernelComputePressures;
-    private int kernelApplyPressures;
-    private int kernelResampleDensity;
-    private int kernelUpdateSnowColumns;
-    private int kerneClearGrid;
-
-    uint gridThreadGroupSizeX;
-    uint gridTthreadGroupSizeY;
-    uint gridThreadGroupSizeZ;
 
     // Start is called before the first frame update
     void Start()
@@ -188,10 +176,6 @@ public class Manager : MonoBehaviour
         UpdateColliders();
     }
 
-    Renderer rend;
-    RenderTexture groundHeightMapTexture;
-    RenderTexture snowHeightMapTexture;
-    RenderTexture debugText;
     private void CreateTextures()
     {
             groundHeightMapTexture = new RenderTexture(texResolution, texResolution, 0);
@@ -210,20 +194,13 @@ public class Manager : MonoBehaviour
             rend.enabled = true;
             GenerateHeightMap();
     }
-    uint heightThreadGroupSizeX;
-    uint heightThreadGroupSizeY;
-    uint heightThreadGroupSizeZ;
-    int kernelGenerateGroundHeight;
-    int kernelInitTotals;
-    int kernelAddHeight;
-    int kernelClearTotals;
+
     private void GenerateHeightMap()
     {
         snowTotalsArray = new ColumnData[snowTotalsArraySize];
         snowColumnsBuffer = new ComputeBuffer(snowTotalsArraySize, SIZE_COLUMNDATA);
         snowColumnsBuffer.SetData(snowTotalsArray);
         
-
         kernelGenerateGroundHeight = shader.FindKernel("GenerateHeight");
         kernelInitTotals = shader.FindKernel("InitSnowTotals");
         kernelAddHeight = shader.FindKernel("AddSnowHeight");
@@ -233,11 +210,8 @@ public class Manager : MonoBehaviour
         shader.SetTexture(kernelGenerateGroundHeight, "GroundHeightMap", groundHeightMapTexture);
         shader.SetTexture(kernelGenerateGroundHeight, "Debug", debugText);
         shader.SetBuffer(kernelGenerateGroundHeight, "snowTotalsBuffer", snowColumnsBuffer);
-
         shader.SetBuffer(kernelInitTotals, "snowTotalsBuffer", snowColumnsBuffer);
         shader.SetBuffer(kernelAddHeight, "snowTotalsBuffer", snowColumnsBuffer);
-
-        
         shader.SetBuffer(kernelClearTotals, "snowTotalsBuffer", snowColumnsBuffer);
 
         snowAddedHeight = snowAddedHeight - snowAddedHeight % cellSize;
@@ -246,25 +220,24 @@ public class Manager : MonoBehaviour
         snowMaterial.SetBuffer("snowTotalsBuffer", snowColumnsBuffer);
         snowMaterial.SetTexture("_GroundHeightMap", groundHeightMapTexture);
         snowMaterial.SetFloat("_SnowMaxHeight", snowAddedHeight);
-
         debugMaterial.SetTexture("_DebugMap", debugText);
 
+        // handle plane rendering: 
         MeshFilter mf = GetComponent<MeshFilter>();
         Bounds bounds = mf.sharedMesh.bounds;
-
         planeSideSize = Mathf.Abs(bounds.extents.x * 2)*transform.localScale.x;
         shader.SetFloat("planeSideSize", planeSideSize);
         Vector3 boundsToWorld = transform.TransformPoint(bounds.center);
         planeCenter = new Vector3(boundsToWorld.x, boundsToWorld.y, boundsToWorld.z);
         shader.SetFloats("planeCenter", new float[] { boundsToWorld.x, boundsToWorld.y, boundsToWorld.z });
 
-
         shader.GetKernelThreadGroupSizes(kernelGenerateGroundHeight, out heightThreadGroupSizeX, out heightThreadGroupSizeY, out _);
-        shader.Dispatch(kernelGenerateGroundHeight, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX), Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY), 1);
+        heightMapThreadCalls.x = Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX);
+        heightMapThreadCalls.y = Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY);
+        heightMapThreadCalls.z = 1;
 
-        shader.GetKernelThreadGroupSizes(kernelInitTotals, out heightThreadGroupSizeX, out heightThreadGroupSizeY, out _);
-        shader.Dispatch(kernelInitTotals, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX), Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY), 1);
-
+        shader.Dispatch(kernelGenerateGroundHeight, heightMapThreadCalls.x, heightMapThreadCalls.y, heightMapThreadCalls.z);
+        shader.Dispatch(kernelInitTotals, heightMapThreadCalls.x, heightMapThreadCalls.y, heightMapThreadCalls.z);
     }
 
     private void InitDefaultArguments()
@@ -277,10 +250,14 @@ public class Manager : MonoBehaviour
         timeScale = 0.0f;
         time = 0.0f;
     }
+    private void InitThreadGroupSizes()
+    {
+        shader.GetKernelThreadGroupSizes(kernePopulateGrid, out gridThreadGroupSizeX, out gridTthreadGroupSizeY, out gridThreadGroupSizeZ);
+    }
 
     private void InitializeTweakParameters()
     {
-        // set numerical parameters here only once
+        // set numerical parameters that need to be set only once
 
         int[] gridDimensions = new int[] { gridWidth, gridHeight, gridDepth };
         shader.SetInts("gridDimensions", gridDimensions); //in cell numbers! 
@@ -292,8 +269,8 @@ public class Manager : MonoBehaviour
         float[] gridC = new float[] { gridCenter.x, gridCenter.y, gridCenter.z };
         shader.SetFloats("gridCenter", gridC);
 
-        int cellCount = gridWidth * gridHeight * gridDepth;
-        shader.SetInt("cellBufferLength", cellCount);
+        gridCellCount = gridWidth * gridHeight * gridDepth;
+        shader.SetInt("cellBufferLength", gridCellCount);
 
         GridMaterial.SetFloat("_CellSize", cellSize);
         GridMaterial.SetFloat("_MaxSnowDensity", maxSnowDensity);
@@ -306,8 +283,8 @@ public class Manager : MonoBehaviour
         shader.SetFloat("freshSnowDensity", freshSnowDensity);
         shader.SetFloat("airTemperature", airTemperature);
 
-        shader.SetFloat("h_d_p", h_d_p);
-        shader.SetFloat("h_c_p", h_c_p);
+        //shader.SetFloat("h_d_p", h_d_p);
+        //shader.SetFloat("h_c_p", h_c_p);
         shader.SetFloat("k_d_p", k_d_p);
         shader.SetFloat("k_c_p", k_c_p);
 
@@ -320,11 +297,10 @@ public class Manager : MonoBehaviour
     }
     private void InitGrid()
     {
-        int cellCount = gridWidth * gridHeight * gridDepth;
 
-        Debug.Log("cellCount " + cellCount);
+        Debug.Log("grid cell count " + gridCellCount);
 
-        cellGridArray = new Cell[cellCount];
+        cellGridArray = new Cell[gridCellCount];
         int index = 0;
         for (int i =0;i< gridWidth; i++)
         {
@@ -340,7 +316,7 @@ public class Manager : MonoBehaviour
             }
         }
 
-        cellGridBuffer = new ComputeBuffer(cellCount, SIZE_CELL);
+        cellGridBuffer = new ComputeBuffer(gridCellCount, SIZE_CELL);
         cellGridBuffer.SetData(cellGridArray);
 
         kernePopulateGrid = shader.FindKernel("PopulateGrid");
@@ -353,16 +329,17 @@ public class Manager : MonoBehaviour
         shader.SetTexture(kernePopulateGrid, "GroundHeightMap", groundHeightMapTexture);
         shader.SetTexture(kernePopulateGrid, "Debug", debugText);
 
-
+        //init thread group sizes and calculate calls once:
         shader.GetKernelThreadGroupSizes(kernePopulateGrid, out gridThreadGroupSizeX, out gridTthreadGroupSizeY, out gridThreadGroupSizeZ);
-        shader.Dispatch(kernePopulateGrid, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX), 
-                                           Mathf.CeilToInt((float)gridHeight / (float)gridTthreadGroupSizeY), 
-                                           Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
+        gridThreadCalls.x = Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX);
+        gridThreadCalls.y = Mathf.CeilToInt((float)gridHeight / (float)gridTthreadGroupSizeY);
+        gridThreadCalls.z = Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ);
+        shader.Dispatch(kernePopulateGrid, gridThreadCalls.x, gridThreadCalls.y, gridThreadCalls.z);
 
         GridMaterial.SetBuffer("cellGridBuffer", cellGridBuffer);
 
 
-        gridArgs = new uint[] { cubeMesh.GetIndexCount(0), (uint)cellCount, 0, 0, 0 };
+        gridArgs = new uint[] { cubeMesh.GetIndexCount(0), (uint)gridCellCount, 0, 0, 0 };
         gridArgsBuffer = new ComputeBuffer(1, gridArgs.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
         gridArgsBuffer.SetData(gridArgs);
         cellBounds = new Bounds(Vector3.zero, new Vector3(30, 30, 30)); //place holder
@@ -392,34 +369,13 @@ public class Manager : MonoBehaviour
     {
         UpdateTweakParameters();
         // calculate groups only once
-        shader.Dispatch(kernelClearTotals, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX), Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY), 1);
-
-        shader.GetKernelThreadGroupSizes(kernelGenerateGroundHeight, out heightThreadGroupSizeX, out heightThreadGroupSizeY, out heightThreadGroupSizeZ);
-        shader.Dispatch(kernePopulateGrid, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),
-                                              Mathf.CeilToInt((float)gridHeight / (float)gridTthreadGroupSizeY),
-                                              Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
-
-
-
-        //shader.Dispatch(kernelComputeForces, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),
-        //                                      Mathf.CeilToInt((float)gridHeight / (float)gridTthreadGroupSizeY),
-        //                                      Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
+        shader.Dispatch(kernelClearTotals, heightMapThreadCalls.x, heightMapThreadCalls.y, heightMapThreadCalls.z);
+        shader.Dispatch(kernePopulateGrid, gridThreadCalls.x, gridThreadCalls.y, gridThreadCalls.z);
         if (colliders.activeSelf) shader.Dispatch(kernelSetPressure, collisionCellsCount, 1, 1); 
-        
         shader.Dispatch(kernelComputePressures, 2, 1, 2);
         shader.Dispatch(kernelApplyPressures, 5, 5, 5); 
         shader.Dispatch(kernelResampleDensity, 2, 1, 2);
-
-
-        //shader.Dispatch(kernelApplyForces, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),
-        //                                     Mathf.CeilToInt((float)gridHeight / (float)gridTthreadGroupSizeY),
-        //                                      Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
-
-
         shader.Dispatch(kernelUpdateSnowColumns, 32, 32, 1);
-        //shader.Dispatch(kernelUpdateSnowTotals, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX),
-        //                                     Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY),
-        //                                      gridHeight);
 
         snowColumnsBuffer.GetData(snowTotalsArray);
         snowMaterial.SetFloat("_SnowMaxHeight", snowTotalsArray[0].height);
@@ -430,13 +386,11 @@ public class Manager : MonoBehaviour
         //DebugPrint();
         if (showGrid)
         {
-            Graphics.DrawMeshInstancedIndirect(cubeMesh, 0, GridMaterial, cellBounds, gridArgsBuffer);
+            //Graphics.DrawMeshInstancedIndirect(cubeMesh, 0, GridMaterial, cellBounds, gridArgsBuffer);
+            Graphics.DrawMeshInstancedProcedural(cubeMesh, 0, GridMaterial, cellBounds, gridCellCount);
             //inside shader - draw procedural
         }
 
-
-
-        //shader.GetKernelThreadGroupSizes(kerneClearGrid, out gridThreadGroupSizeX, out gridTthreadGroupSizeY, out gridThreadGroupSizeZ);
         shader.Dispatch(kerneClearGrid, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),
                                           Mathf.CeilToInt((float)gridHeight / (float)gridTthreadGroupSizeY),
                                            Mathf.CeilToInt((float)gridDepth / (float)gridThreadGroupSizeZ));
@@ -446,23 +400,12 @@ public class Manager : MonoBehaviour
     void OnDestroy()
     {
         cellGridBuffer.Release();
-
         if (gridArgsBuffer != null)
         {
-
-            //Debug.Log("args buffer released " + argsBuffer);
             gridArgsBuffer.Release();
         }
-
         snowColumnsBuffer.Release();
-
-        //particleBuffer.Release();
-
-       /* if (particleArgsBuffer != null)
-        {
-            //Debug.Log("args buffer released " + argsBuffer);
-            particleArgsBuffer.Release();
-        }*/
+        collisionsBuffer.Release();
     }
 
     void InitializeColliders()
@@ -530,19 +473,20 @@ public class Manager : MonoBehaviour
         int ui_element_no = 0;
         int screen_width = Screen.width;
 
-
         // left screen ui
-
-        //GUI.Label(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Time scale");
         GUI.Label(new Rect(10 + element_width + 10, screep_pos_y_from_top + (ui_element_no) * vertical_interval, element_width, 30), "Time scale");
         GUI.Label(new Rect((screen_width- element_width) / 3, screep_pos_y_from_top + (ui_element_no) * vertical_interval, 3*element_width, 30), "Simulation time: "+ time);
         timeScale = GUI.HorizontalSlider(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), timeScale, 0.0f, element_width);
 
-        //if (GUI.Button(new Rect(10 + element_width + 10, screep_pos_y_from_top + (ui_element_no-1) * vertical_interval, element_width, 30), "Start time"))
-        if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Start time"))
+        if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no * vertical_interval, element_width, 30), "Start time"))
         {
-            //timeScale = 0.1f;
             timeScale = 1.0f;
+            Debug.Log("Time scale set to " + timeScale);
+        }
+        
+        if (GUI.Button(new Rect(10 + element_width + 10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Stop time"))
+        {
+            timeScale = 0.0f;
             Debug.Log("Time scale set to " + timeScale);
         }
 
