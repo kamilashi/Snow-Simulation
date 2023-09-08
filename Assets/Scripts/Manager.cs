@@ -46,7 +46,7 @@ public class Manager : MonoBehaviour
     //[Range(0.0f, 10.0f)]
     //private float h_c_p = 2.0f;
     [Range(0.0f, 10.0f)]
-    public float k_d_p = 3.56f;
+    public float kN = 3.56f;
     [Range(0.0f, 10.0f)]
     private float k_c_p = 0.54f;
     public float minSnowTemperature = -20.0f; //degree celcius
@@ -250,11 +250,6 @@ public class Manager : MonoBehaviour
         timeScale = 0.0f;
         time = 0.0f;
     }
-    private void InitThreadGroupSizes()
-    {
-        shader.GetKernelThreadGroupSizes(kernePopulateGrid, out gridThreadGroupSizeX, out gridTthreadGroupSizeY, out gridThreadGroupSizeZ);
-    }
-
     private void InitializeTweakParameters()
     {
         // set numerical parameters that need to be set only once
@@ -282,11 +277,7 @@ public class Manager : MonoBehaviour
 
         shader.SetFloat("freshSnowDensity", freshSnowDensity);
         shader.SetFloat("airTemperature", airTemperature);
-
-        //shader.SetFloat("h_d_p", h_d_p);
-        //shader.SetFloat("h_c_p", h_c_p);
-        shader.SetFloat("k_d_p", k_d_p);
-        shader.SetFloat("k_c_p", k_c_p);
+        shader.SetFloat("kN", kN);
 
         shader.SetFloat("deltaTime", Time.deltaTime);
         shader.SetFloat("timeScale", timeScale);
@@ -309,7 +300,6 @@ public class Manager : MonoBehaviour
                 for (int k = 0; k < gridDepth; k++)
                 {
                     Cell cell = new Cell(i ,j, k, index, freshSnowDensity, airTemperature);
-                   // cell.temperature = 0.0f - j;
                     cellGridArray[index] = cell;
                     index++;
                 }
@@ -379,16 +369,12 @@ public class Manager : MonoBehaviour
 
         snowColumnsBuffer.GetData(snowTotalsArray);
         snowMaterial.SetFloat("_SnowMaxHeight", snowTotalsArray[0].height);
-        //propertyToId instead of strings
 
         if (colliders.activeSelf) { UpdateColliders(); }
 
-        //DebugPrint();
         if (showGrid)
         {
-            //Graphics.DrawMeshInstancedIndirect(cubeMesh, 0, GridMaterial, cellBounds, gridArgsBuffer);
             Graphics.DrawMeshInstancedProcedural(cubeMesh, 0, GridMaterial, cellBounds, gridCellCount);
-            //inside shader - draw procedural
         }
 
         shader.Dispatch(kerneClearGrid, Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX),

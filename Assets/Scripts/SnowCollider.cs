@@ -23,31 +23,22 @@ public class SnowCollider : MonoBehaviour
 
     void UpdateAreaAndPressure() {
         bounds = GetComponent<MeshRenderer>().bounds;
-        //dimensions = new Vector3(bounds.size.x * transform.localScale.x, bounds.size.y * transform.localScale.y, bounds.size.z * transform.localScale.z);
         dimensions = new Vector3(bounds.size.x , bounds.size.y , bounds.size.z );
         collisionArea = dimensions.x * dimensions.z;
         float force_mg = -1.0f * (mass * G);
         pressure.y = force_mg / collisionArea;
     }
 
-    private void Awake()
+    private void Awake() // called before the first frame Updae, but even if the object is disabled in the scene
     {
         UpdateAreaAndPressure();
-    }
-
-    // Start is called before the first frame update
-    void Start()
-    {
-
     }
 
     // Update is called once per frame
     void Update()
     {
-        
         Vector3 newPosition = new Vector3(transform.position.x, heightPosition + dimensions.y*0.5f - cellSize, transform.position.z);
         transform.SetPositionAndRotation(newPosition, Quaternion.identity);
-
         UpdateAreaAndPressure();
         CalculateCollision();
     }
