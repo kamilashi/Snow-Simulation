@@ -38,7 +38,7 @@ public class Manager : MonoBehaviour
     public float freshSnowDensity = 20f; //kg/m^3
     public float maxSnowDensity = 100.0f; //kg/m^3
 
-    //collision paraüeters:
+    //collision paraeters:
     int collisionCellsCount;
 
     //[Range(0.0f, 10.0f)]
@@ -46,9 +46,9 @@ public class Manager : MonoBehaviour
     //[Range(0.0f, 10.0f)]
     //private float h_c_p = 2.0f;
     [Range(0.0f, 10.0f)]
-    public float kN = 3.56f;
-    //[Range(0.0f, 10.0f)]
-    //private float k_c_p = 0.54f;
+    public float k_d_p = 3.56f;
+    [Range(0.0f, 10.0f)]
+    private float k_c_p = 0.54f;
     public float minSnowTemperature = -20.0f; //degree celcius
     [Range(-20.0f, -1.0f)]
     public float airTemperature = -3.0f; //kg/m^3
@@ -285,8 +285,8 @@ public class Manager : MonoBehaviour
 
         //shader.SetFloat("h_d_p", h_d_p);
         //shader.SetFloat("h_c_p", h_c_p);
-        shader.SetFloat("k_d_p", kN);
-        //shader.SetFloat("k_c_p", k_c_p);
+        shader.SetFloat("k_d_p", k_d_p);
+        shader.SetFloat("k_c_p", k_c_p);
 
         shader.SetFloat("deltaTime", Time.deltaTime);
         shader.SetFloat("timeScale", timeScale);
@@ -455,9 +455,11 @@ public class Manager : MonoBehaviour
     int WorldPosToArrayIndex(Vector3 position)
     {
         planeCenter = transform.position;
+
         float mapX = ((-position.x + planeSideSize / 2.0f - planeCenter.x) / (float)planeSideSize);
         float mapY = ((-position.z + planeSideSize / 2.0f - planeCenter.z) / (float)planeSideSize);
         Vector2Int coords = new Vector2Int(Mathf.RoundToInt(mapX * (texResolution - 1.0f)), Mathf.RoundToInt(mapY * (texResolution - 1.0f)));
+
         int index = coords.x + (int) texResolution * coords.y;
         return index;
     }
@@ -503,6 +505,7 @@ public class Manager : MonoBehaviour
             Debug.Log("Mass of center column 512x512: " + mass);
         }
 
+
         GUI.Label(new Rect(10 + element_width+10, screep_pos_y_from_top + ui_element_no * vertical_interval, element_width, 60), "Add Snow Height: " + snowAddedHeight + " m.");
         snowAddedHeight = GUI.HorizontalSlider(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), snowAddedHeight, 0.0f, 8.0f);
         snowAddedHeight = snowAddedHeight - snowAddedHeight % cellSize;
@@ -518,6 +521,26 @@ public class Manager : MonoBehaviour
         GUI.Label(new Rect(10 + element_width + 10, screep_pos_y_from_top + ui_element_no * vertical_interval, element_width, 60), "Air temperature: " + airTemperature + " deg. C");
         airTemperature = GUI.HorizontalSlider(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), airTemperature, minSnowTemperature, 0.0f);
         airTemperature = Mathf.Round(airTemperature);
+
+/*
+        if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 3*element_width, 30), "Init temp grad. bottom-up"))
+        {
+            snowAddedHeight = 0.0f;
+            airTemperature = -1.0f;
+            shader.SetFloat("snowAddedHeight", snowAddedHeight);
+            shader.SetFloat("airTemperature", airTemperature);
+            Reset();
+
+            snowAddedHeight = 0.8f;
+            shader.SetFloat("snowAddedHeight", snowAddedHeight);
+
+            for (int i = 0; i < 7; i++) {
+                airTemperature -= 2.0f;
+                shader.SetFloat("airTemperature", airTemperature); 
+                shader.Dispatch(kernelAddHeight, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX), Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY), 1);
+                Debug.Log("Adding " + snowAddedHeight + " meters of snow");
+            };
+        }*/
 
         if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Reset"))
         {

@@ -42,15 +42,15 @@
       </MemberNameLabel>
     </AssociationLine>
     <TypeIdentifier>
-      <HashCode>QK7DQiQ5MSiEJEAAELZAQBASEABCA4ICXgCiFFRwXCQ=</HashCode>
+      <HashCode>QK7DQiQ5MSiEBEAAEDZAQBASEBBCA4ICXgCiFFRwGCQ=</HashCode>
       <FileName>Assets\Scripts\Manager.cs</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
       <Field Name="colliders" />
-      <Field Name="shader" />
       <Field Name="cellGridBuffer" />
       <Field Name="snowColumnsBuffer" />
       <Field Name="collisionsBuffer" />
+      <Field Name="shader" />
     </ShowAsAssociation>
   </Class>
   <Class Name="UnityEngine.ComputeBuffer" Collapsed="true">
