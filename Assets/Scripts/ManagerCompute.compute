@@ -1,12 +1,12 @@
 #pragma kernel GenerateHeight
-#pragma kernel InitSnowTotals
+#pragma kernel InitSnowColumns
 #pragma kernel AddSnowHeight
-#pragma kernel ClearSnowTotals
+#pragma kernel ClearSnowColumns
 #pragma kernel PopulateGrid
 #pragma kernel ComputeForces
 #pragma kernel ApplyForces
 #pragma kernel ResampleDensity
-#pragma kernel UpdateSnowTotals
+#pragma kernel UpdateSnowColumns
 #pragma kernel SetPressure
 #pragma kernel ClearGrid
 #include "../Scripts/Noises.cginc"
@@ -48,7 +48,7 @@ struct ColumnData
 
 // Data buffers:
  RWStructuredBuffer<Cell> cellGridBuffer;
- RWStructuredBuffer<ColumnData> snowTotalsBuffer;
+ RWStructuredBuffer<ColumnData> snowColumnsBuffer;
  RWStructuredBuffer<CollisionData> collisionsBuffer;
 
 // TextureMaps:
@@ -102,7 +102,6 @@ bool isWithinGrid(float3 position)
 {
     float3 boundsMin = gridCenter - ((float3) gridDimensions) * 0.5f * cellSize;
     float3 boundsMax = gridCenter + ((float3) gridDimensions) * 0.5f * cellSize;
-    
     if (
         (position.x < boundsMin.x) || (position.x > boundsMax.x) ||
         (position.y < boundsMin.y) || (position.y > boundsMax.y) ||
@@ -150,29 +149,29 @@ void GenerateHeight(uint3 id : SV_DispatchThreadID)
     float2 uv = float2((float) id.x / (float) (texResolution - 1), (float) id.y / (float) (texResolution - 1));
     float heightMap = 0.0f;
     GroundHeightMap[id.xy] = float4(heightMap.xxx, 0.0f);
-    snowTotalsBuffer[indexTextToArray(id.xy)].groundHeight = heightMap;
+    snowColumnsBuffer[indexTextToArray(id.xy)].groundHeight = heightMap;
     Debug[id.xy] = float4(heightMap.xxx, 0.0f);
 }
 
 [numthreads(32, 32, 1)]
-void InitSnowTotals(uint3 id : SV_DispatchThreadID)
+void InitSnowColumns(uint3 id : SV_DispatchThreadID)
 {
-    snowTotalsBuffer[indexTextToArray(id.xy)].height = snowAddedHeight; // init column heights
-    snowTotalsBuffer[indexTextToArray(id.xy)].mass = 0.0f; // init column masses
+    snowColumnsBuffer[indexTextToArray(id.xy)].height = snowAddedHeight; // init column heights
+    snowColumnsBuffer[indexTextToArray(id.xy)].mass = 0.0f; // init column masses
 }
 
 // Helper kernels - called when needed:
 [numthreads(32, 32, 1)]
-void ClearSnowTotals(uint3 id : SV_DispatchThreadID)
+void ClearSnowColumns(uint3 id : SV_DispatchThreadID)
 {
-    snowTotalsBuffer[indexTextToArray(id.xy)].mass = 0.0f; // clear mass
-    snowTotalsBuffer[indexTextToArray(id.xy)].mass_temp = 0.0f; // clear mass
+    snowColumnsBuffer[indexTextToArray(id.xy)].mass = 0.0f; // clear mass
+    snowColumnsBuffer[indexTextToArray(id.xy)].mass_temp = 0.0f; // clear mass
 }
 
 [numthreads(32, 32, 1)]
 void AddSnowHeight(uint3 id : SV_DispatchThreadID)
 {
-    snowTotalsBuffer[indexTextToArray(id.xy)].height += snowAddedHeight; 
+    snowColumnsBuffer[indexTextToArray(id.xy)].height += snowAddedHeight; 
 }
 
 // Simulation kernels - called every frame:
@@ -184,8 +183,7 @@ void PopulateGrid(uint3 id : SV_DispatchThreadID)
     cell.WSposition = (float3((float) id.x + (float) cellSize / 4.0f, (float) id.y + (float) cellSize / 4.0f, (float) id.z + (float) cellSize / 4.0f) + (gridCenter - (float3) gridDimensions * 0.5f)) * cellSize;
     int2 coords = posTocoords(cell.WSposition);
     float groundLevel = GroundHeightMap[coords].x + planeCenter.y;
-    float snowLevel = groundLevel + snowTotalsBuffer[indexTextToArray(coords)].height;
-    
+    float snowLevel = groundLevel + snowColumnsBuffer[indexTextToArray(coords)].height;
     if (cell.WSposition.y < groundLevel + cellSize * 0.5f)
     {
         cell.isOccupied = -2; //below ground
@@ -316,12 +314,12 @@ void ResampleDensity(uint3 id : SV_DispatchThreadID)
 }
 
 [numthreads(32, 32, 1)]
-void UpdateSnowTotals(uint3 id : SV_DispatchThreadID)
+void UpdateSnowColumns(uint3 id : SV_DispatchThreadID)
 {
     int2 coords = id.xy;
     coords = int2(texResolution - 1, texResolution - 1) - coords;
     uint bufferIndex = indexTextToArray(coords);
-    ColumnData snowColumnTotals = snowTotalsBuffer[bufferIndex];
+    ColumnData snowColumnTotals = snowColumnsBuffer[bufferIndex];
     snowColumnTotals.mass = 0.0f;
     Cell cell;
     for (int i = 0; i < 50; i++)
@@ -333,7 +331,7 @@ void UpdateSnowTotals(uint3 id : SV_DispatchThreadID)
         snowColumnTotals.height -= indentAmout;
         if (cell.isOccupied > -1)  snowColumnTotals.mass += cell.mass;
     }
-    snowTotalsBuffer[bufferIndex] = snowColumnTotals;
+    snowColumnsBuffer[bufferIndex] = snowColumnTotals;
 }
 
 [numthreads(1, 1, 1)]
