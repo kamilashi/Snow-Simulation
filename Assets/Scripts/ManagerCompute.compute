@@ -1,18 +1,20 @@
 #pragma kernel GenerateHeight
-#pragma kernel InitSnowTotals
+#pragma kernel InitSnowColumns
 #pragma kernel AddSnowHeight
-#pragma kernel ClearSnowTotals
+#pragma kernel ClearSnowColumns
 #pragma kernel PopulateGrid
 #pragma kernel ComputeForces
 #pragma kernel ApplyForces
 #pragma kernel ResampleDensity
-#pragma kernel UpdateSnowTotals
+#pragma kernel UpdateSnowColumns
 #pragma kernel SetPressure
 #pragma kernel ClearGrid
 #include "../Scripts/Noises.cginc"
 
 #define PI2 6.28318530718f
 #define G 9.81f
+
+// Data sctucts:
 
 struct Cell
 {
@@ -75,11 +77,7 @@ float airTemperature;
 float groundTemperature;
 float maxSnowDensity;
 float freshSnowDensity;
-
-//float h_d_p;
-//float h_c_p;
 float kN;
-//float k_c_p;
 
 // Helper functions:
 float fsmooth(float x, float z)
@@ -159,7 +157,7 @@ void GenerateHeight(uint3 id : SV_DispatchThreadID)
 }
 
 [numthreads(32, 32, 1)]
-void InitSnowTotals(uint3 id : SV_DispatchThreadID)
+void InitSnowColumns(uint3 id : SV_DispatchThreadID)
 {
     snowTotalsBuffer[indexTextToArray(id.xy)].height = snowAddedHeight; // init column heights
     snowTotalsBuffer[indexTextToArray(id.xy)].mass = 0.0f; // init column masses
@@ -167,7 +165,7 @@ void InitSnowTotals(uint3 id : SV_DispatchThreadID)
 
 // Helper kernels - called when needed:
 [numthreads(32, 32, 1)]
-void ClearSnowTotals(uint3 id : SV_DispatchThreadID)
+void ClearSnowColumns(uint3 id : SV_DispatchThreadID)
 {
     snowTotalsBuffer[indexTextToArray(id.xy)].mass = 0.0f; // clear mass
     snowTotalsBuffer[indexTextToArray(id.xy)].mass_temp = 0.0f; // clear mass
@@ -320,7 +318,7 @@ void ResampleDensity(uint3 id : SV_DispatchThreadID)
 }
 
 [numthreads(32, 32, 1)]
-void UpdateSnowTotals(uint3 id : SV_DispatchThreadID)
+void UpdateSnowColumns(uint3 id : SV_DispatchThreadID)
 {
     int2 coords = id.xy;
     coords = int2(texResolution - 1, texResolution - 1) - coords;

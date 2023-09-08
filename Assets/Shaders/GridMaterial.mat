@@ -13,6 +13,7 @@ Material:
   m_InvalidKeywords:
   - ISOLATE_SNOW
   - SHOW_CNOWPARAMS
+  - SHOW_DENSITY
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 1
   m_DoubleSidedGI: 0

@@ -3,10 +3,10 @@ Shader "Custom/GridShader"
 
 	Properties{
 		_Color("Color", Color) = (0,0,0,1)
-		[Toggle(SHOW_Pressure)] _Paint_White("Paint White", Float) = 0
-		[Toggle(SHOW_Pressure)] _Show_Pressure("Show Pressure", Float) = 0
-		[Toggle(SHOW_SNOWPARAMS)] _Show_Density("Show Density", Float) = 0
-		[Toggle(SHOW_SNOWPARAMS)] _Show_Temperature("Show Temperature", Float) = 0
+		[Toggle(PAINT_WHITE)] _Paint_White("Paint White", Float) = 0
+		[Toggle(SHOW_DENSITY)] _Show_Density("Show Density", Float) = 0
+		[Toggle(SHOW_TEMP)] _Show_Temperature("Show Temperature", Float) = 0
+		[Toggle(SHOW_PRESSURE)] _Show_Pressure("Show Pressure", Float) = 0
 		[Toggle(SHOW_INDEXES)] _Show_Indexes("Show Indexes", Float) = 0
 		[Toggle(ISOLATE_SNOW)] _Isolate_Snow("Isolte Snow", Float) = 0
 		_Blend_Modifier("Blend Modifier", Float) = 1
