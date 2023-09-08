@@ -14,6 +14,8 @@
 #define PI2 6.28318530718f
 #define G 9.81f
 
+// Data structures:
+
 struct Cell
 {
     int3 gridIndex;
@@ -143,11 +145,10 @@ uint indexTexToGrid(uint3 id)
     return index;
 }
 
-// Initializor kernels - called only once at the very start
+// Initializor kernels - called only once at the very start:
 [numthreads(32, 32, 1)]
 void GenerateHeight(uint3 id : SV_DispatchThreadID)
 {
-    // This funcitons allows for generating an uneven ground surface
     float2 uv = float2((float) id.x / (float) (texResolution - 1), (float) id.y / (float) (texResolution - 1));
     float heightMap = 0.0f;
     GroundHeightMap[id.xy] = float4(heightMap.xxx, 0.0f);
@@ -232,7 +233,7 @@ void ComputeForces(uint3 id : SV_DispatchThreadID)
     for (int i = 49; i >= 0; i--)
     {
         id.y = i;
-        int index = id.x + gridDimensions.x * id.y + gridDimensions.y * gridDimensions.x * id.z; //iterate top to bottom
+        int index = id.x + gridDimensions.x * id.y + gridDimensions.y * gridDimensions.x * id.z; // iterate top to bottom
         cell = cellGridBuffer[index];
         if (cell.isOccupied > -2)
         {

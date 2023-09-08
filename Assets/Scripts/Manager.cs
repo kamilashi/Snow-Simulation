@@ -210,6 +210,7 @@ public class Manager : MonoBehaviour
         snowMaterial.SetBuffer("snowColumnsBuffer", snowColumnsBuffer);
         snowMaterial.SetTexture("_GroundHeightMap", groundHeightMapTexture);
         snowMaterial.SetFloat("_SnowMaxHeight", snowAddedHeight);
+        snowMaterial.SetInteger("_TexResolution", texResolution);
         debugMaterial.SetTexture("_DebugMap", debugText);
 
         // handle plane rendering: 

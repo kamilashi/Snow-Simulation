@@ -1,12 +1,12 @@
-Shader "Unlit/snow"
+Shader "Unlit/Snow"
 {
     Properties
     {
         _SnowSurfaceColor("Snow Surface Color", Color) = (1,1,1,1)
         _SnowDepthColor("Snow Depth Color", Color) = (0,0,0,1)
         _GroundHeightMap("Texture", 2D) = "white" {}
-        //_OffsetX("Test X Offset", Range(0,100)) = 10
-        _SnowMaxHeight("Snow Max Height Const", Range(0,10)) = 10
+       [HideInInspector] _SnowMaxHeight("Snow Max Height Const", Range(0,10)) = 10
+       [HideInInspector] _TexResolution("Texture Map Resolution", Integer) = 1024
     }
     SubShader
     {
@@ -40,7 +40,7 @@ Shader "Unlit/snow"
             float4 _SnowDepthColor;
             float4 _SnowSurfaceColor;
             float _SnowMaxHeight;
-            //float _OffsetX;
+            int _TexResolution;
 
             struct ColumnData
             {
@@ -55,11 +55,7 @@ Shader "Unlit/snow"
             v2f vert (appdata v)
             {
                 v2f o;
-                int _texResolution = 1024;
-                //uint index = (uint) floor((0.9-v.uv.x) * _texResolution) + floor((0.9 -v.uv.y) * _texResolution) *_texResolution;
-
-
-                //uint index = (uint) round(saturate(max(v.uv.x, 0.15)) *( _texResolution-1)) + round(saturate(min(v.uv.y, 0.85)) * (_texResolution-1)) *_texResolution;
+                int _texResolution = _TexResolution;
                 uint index = (uint) round(v.uv.x *( _texResolution-1)) + round(v.uv.y * (_texResolution-1)) *_texResolution;
                 float snowHeight = snowTotalsBuffer[index].height;
                 float groundHeight = tex2Dlod(_GroundHeightMap, float4(v.uv, 0.0, 0.0)).x;
@@ -73,10 +69,10 @@ Shader "Unlit/snow"
 
             fixed4 frag (v2f i) : SV_Target
             {
-                float4 col = _SnowSurfaceColor;
-                col = lerp(col, _SnowDepthColor, i.snowIndent);
+                float4 color = _SnowSurfaceColor;
+                color = lerp(color, _SnowDepthColor, i.snowIndent);
                 
-                return col;
+                return color;
             }
             ENDCG
         }

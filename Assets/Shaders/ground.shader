@@ -1,4 +1,4 @@
-Shader "Unlit/ground"
+Shader "Unlit/Ground"
 {
     Properties
     {
@@ -45,11 +45,8 @@ Shader "Unlit/ground"
 
             float4 frag (v2f i) : SV_Target
             {
-                // sample the texture
-                //fixed4 col = tex2D(_HeightMap, i.uv);
-                float4 col = float4(0,0,0,1);//ground color for now
-                
-                return col;
+                float4 color = float4(0,0,0,1);
+                return color;
             }
             ENDCG
         }
