@@ -78,8 +78,8 @@ float freshSnowDensity;
 
 //float h_d_p;
 //float h_c_p;
-float k_d_p;
-float k_c_p;
+float kN;
+//float k_c_p;
 
 // Helper functions:
 float fsmooth(float x, float z)
@@ -255,7 +255,7 @@ void ApplyForces(uint3 id : SV_DispatchThreadID)
         cellGridBuffer[index] = cell;
         return;
     }
-    float k_springCoefficient = abs(pow(cell.density, k_d_p) * pow(0.1f, k_c_p));
+    float k_springCoefficient = abs(pow(cell.density, kN)); /* * pow(0.1f, k_c_p))*/
     float x = max((abs(pressure_y) - cell.hardness), 0.0f) / (float) k_springCoefficient; // alternative?
     x = abs(x);
     x *= deltaTime * timeScale;
