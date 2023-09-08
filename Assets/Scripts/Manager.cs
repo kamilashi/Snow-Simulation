@@ -5,7 +5,6 @@ using UnityEngine;
 using Unity.Collections;
 using UnityEngine.Rendering;
 
-//[ExecuteInEditMode]
 public class Manager : MonoBehaviour
 {
     // for switching the scene cameras:
@@ -38,8 +37,6 @@ public class Manager : MonoBehaviour
     public float maxSnowDensity = 100.0f; //kg/m^3
     [Range(0.0f, 10.0f)]
     public float kN = 3.56f;
-    [Range(0.0f, 10.0f)]
-    private float k_c_p = 0.54f;
     public float minSnowTemperature = -20.0f; //degree celcius
     [Range(-20.0f, -1.0f)]
     public float airTemperature = -3.0f; //kg/m^3
@@ -420,7 +417,6 @@ public class Manager : MonoBehaviour
             float snowHeight = snowColumnsArray[index].height;
             float groundHeight = snowColumnsArray[index].groundHeight;
             collider.SetHeight(snowHeight + groundHeight + planeCenter.y);
-
             collider.getCollisionData().CopyTo(collisionsArray, head_index);
             head_index += collider.cellCount;
         }
@@ -430,11 +426,9 @@ public class Manager : MonoBehaviour
     int WorldPosToArrayIndex(Vector3 position)
     {
         planeCenter = transform.position;
-
         float mapX = ((-position.x + planeSideSize / 2.0f - planeCenter.x) / (float)planeSideSize);
         float mapY = ((-position.z + planeSideSize / 2.0f - planeCenter.z) / (float)planeSideSize);
         Vector2Int coords = new Vector2Int(Mathf.RoundToInt(mapX * (texResolution - 1.0f)), Mathf.RoundToInt(mapY * (texResolution - 1.0f)));
-
         int index = coords.x + (int) texResolution * coords.y;
         return index;
     }
@@ -565,20 +559,4 @@ public class Manager : MonoBehaviour
         UpdateColliders();
     }
 
-    /*void DebugPrint()
-    {
-        int index = 0;
-        for (int i = 0; i < gridWidth; i++)
-        {
-            for (int j = 0; j < gridHeight; j++)
-            {
-                for (int k = 0; k < gridDepth; k++)
-                {
-
-                    Debug.Log("WS position: " + cellGridArray[index].WSposition);
-                    index++;
-                }
-            }
-        }
-    }*/
 }
