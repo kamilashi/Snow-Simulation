@@ -50,16 +50,16 @@ Shader "Unlit/Snow"
                 float mass_temp;                
             };
 
-            StructuredBuffer<ColumnData> snowTotalsBuffer;
+            StructuredBuffer<ColumnData> snowColumnsBuffer;
 
             v2f vert (appdata v)
             {
                 v2f o;
                 int _texResolution = _TexResolution;
                 uint index = (uint) round(v.uv.x *( _texResolution-1)) + round(v.uv.y * (_texResolution-1)) *_texResolution;
-                float snowHeight = snowTotalsBuffer[index].height;
+                float snowHeight = snowColumnsBuffer[index].height;
                 float groundHeight = tex2Dlod(_GroundHeightMap, float4(v.uv, 0.0, 0.0)).x;
-                _SnowMaxHeight = snowTotalsBuffer[0].height;
+                _SnowMaxHeight = snowColumnsBuffer[0].height;
 
                 v.position.y += groundHeight + snowHeight;
                 o.snowIndent = 1 - smoothstep(0.45, 1,saturate(snowHeight / _SnowMaxHeight));
@@ -72,7 +72,6 @@ Shader "Unlit/Snow"
             {
                 float4 color = _SnowSurfaceColor;
                 color = lerp(color, _SnowDepthColor, i.snowIndent);
-                
                 return color;
             }
             ENDCG

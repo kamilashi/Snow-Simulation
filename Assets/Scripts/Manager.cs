@@ -349,6 +349,7 @@ public class Manager : MonoBehaviour
         shader.Dispatch(kernelApplyPressures, 5, 5, 5); 
         shader.Dispatch(kernelResampleDensity, 2, 1, 2);
         shader.Dispatch(kernelUpdateSnowColumns, 32, 32, 1);
+        StartCoroutine(GetColumnDataFromGPU());
         if (colliders.activeSelf)  UpdateColliders(); 
         if (showGrid) Graphics.DrawMeshInstancedProcedural(cubeMesh, 0, GridMaterial, cellBounds, gridCellCount);
         shader.Dispatch(kerneClearGrid, gridThreadCalls.x, gridThreadCalls.y, gridThreadCalls.z);
@@ -365,7 +366,6 @@ public class Manager : MonoBehaviour
     void InitializeColliders()
     {
         int colliderCount = colliders.transform.childCount;
-        snowColumnsBuffer.GetData(snowColumnsArray);
         for (int i = 0; i < colliderCount; i++)
         {
             SnowCollider collider = colliders.transform.GetChild(i).gameObject.GetComponentInChildren<SnowCollider>();
@@ -384,10 +384,22 @@ public class Manager : MonoBehaviour
         shader.SetBuffer(kernelSetPressure, "cellGridBuffer", cellGridBuffer);
     }
 
+    private IEnumerator GetColumnDataFromGPU()
+    {
+        AsyncGPUReadbackRequest request = AsyncGPUReadback.Request(snowColumnsBuffer);
+        while (!request.done)
+        {
+            yield return null;
+        }
+        if (!request.hasError)
+        {
+            snowColumnsArray = request.GetData<ColumnData>().ToArray();
+        }
+    }
+
     void UpdateColliders()
     {
         int colliderCount = colliders.transform.childCount;
-        snowColumnsBuffer.GetData(snowColumnsArray);
         int head_index = 0;
         for (int i = 0; i < colliderCount; i++)
         {

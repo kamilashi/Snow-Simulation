@@ -1,6 +1,5 @@
 Shader "Custom/GridShader"
 {
-
 	Properties{
 		_Color("Color", Color) = (0,0,0,1)
 		[Toggle(SHOW_Pressure)] _Paint_White("Paint White", Float) = 0
@@ -23,8 +22,8 @@ Shader "Custom/GridShader"
 		CGPROGRAM
 
 		struct Input {
-				float2 uv;
-				};
+		float2 uv;
+		};
 
 		fixed4 _Color;
 		float3 _Position;
@@ -70,19 +69,17 @@ Shader "Custom/GridShader"
 			float grainSize;
 			float mass;
 			float massOver;
-			int isOccupied; //TO-DO - enum here
+			int isOccupied; 
 		};
 
 		StructuredBuffer<Cell> cellGridBuffer;
 		 #endif
-
 
 	 void vert(inout appdata_full v, out Input data)
 	{
 		UNITY_INITIALIZE_OUTPUT(Input, data);
 
 		#ifdef UNITY_PROCEDURAL_INSTANCING_ENABLED
-			//v.vertex = mul(_Matrix, v.vertex);
 			v.vertex.xyz *= _CellSize;
 			v.vertex.xyz += _Position;
 		#endif
@@ -93,54 +90,44 @@ Shader "Custom/GridShader"
 		#ifdef UNITY_PROCEDURAL_INSTANCING_ENABLED
 			Cell cell = cellGridBuffer[unity_InstanceID];
 			_Position = cell.WSposition;
-			//content is the index of the particle that the cell is occupied by
 			int content = cell.isOccupied;
 			float blend = 1;
 
 			if(_Show_Density){
 				blend += _Blend_Modifier;
-
 				if (content == 1) {
 					float scale = ((float)cell.density / (float)_MaxSnowDensity) * 1.0f;
 					_Color.r += 0.0f;
 					_Color.g += 0.0f;
 					_Color.b += lerp(0.0f, 1.0f, scale) * 1.0f;
 					_Color.a = 1.0f;
-
 				}
 				else {
-					//todo: move to separate controls
 					_Color = float4(0, 0, 0, 0);
 				}
 			}
-
 			if (_Show_Temperature) {
 				blend += _Blend_Modifier;
 				if (content == -2) { _Color.a = 0.0f; }
 				else {
-					float scale = (cell.temperature / _MinTemperature); // 0 cel = 0; - 30 cel = 1 
+					float scale = (cell.temperature / _MinTemperature); 
 					_Color.r += lerp(0.5f, -0.5f, scale) / blend;
 					_Color.g += 0.0f;
 					_Color.b += lerp(0.0f, 0.5f, scale) / blend;
 					_Color.a = 1.0f;
 				}
 			}
-
 			if (_Show_Pressure) {
 				blend += _Blend_Modifier;
-
 				if (content == 1) {
 					float3 pressure = (cell.pressure);
-					float vertical_scale = max(abs(pressure.y) - abs(cell.hardness), 0.0f) / (float)abs(cell.hardness) /*((float) cell.massOver * _MaxSnowDensity / ( _CellSize * _CellSize))*/;
+					float vertical_scale = max(abs(pressure.y) - abs(cell.hardness), 0.0f) / (float)abs(cell.hardness);
 					_Color.r += 0.0f;
 					_Color.g += lerp(0.0f, 1.0f, vertical_scale) / blend;
 					_Color.b += 0.0f;
-
 					_Color.a = saturate(vertical_scale);
 				}
-				
 			}
-
 			if (_Paint_White) {
 				blend += _Blend_Modifier;
 
@@ -150,7 +137,6 @@ Shader "Custom/GridShader"
 					_Color.b += 1.0f / blend;
 				}
 			}
-			
 			if (_Show_Indexes) {
 				blend += _Blend_Modifier;
 
@@ -161,9 +147,7 @@ Shader "Custom/GridShader"
 
 				_Color.a *= 0.5f;
 			}
-
 			if (_Isolate_Snow) {
-
 				if (content != 1) {
 					_Color.a = 0.0f;
 				}
@@ -180,5 +164,4 @@ Shader "Custom/GridShader"
 
 	  ENDCG
 	}
-		//FallBack "Diffuse"
 }
