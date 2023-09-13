@@ -14,7 +14,6 @@
 #define G 9.81f
 
 // Data structures:
-
 struct Cell
 {
     int3 gridIndex;
@@ -54,7 +53,6 @@ struct ColumnData
 
 // TextureMaps:
 shared RWTexture2D<float4> GroundHeightMap;
-shared RWTexture2D<float4> Debug;
 
 // Grid related varibales:
 int texResolution;
@@ -152,7 +150,6 @@ void GenerateHeight(uint3 id : SV_DispatchThreadID)
     float heightMap = 0.0f;
     GroundHeightMap[id.xy] = float4(heightMap.xxx, 0.0f);
     snowColumnsBuffer[indexTextToArray(id.xy)].groundHeight = heightMap;
-    Debug[id.xy] = float4(heightMap.xxx, 0.0f);
 }
 
 [numthreads(32, 32, 1)]
@@ -259,7 +256,7 @@ void ApplyForces(uint3 id : SV_DispatchThreadID)
         return;
     }
     float k_springCoefficient = abs(pow(cell.density, kN));
-    float x = max((abs(pressure_y) - cell.hardness), 0.0f) / (float) k_springCoefficient; // alternative?
+    float x = max((abs(pressure_y) - cell.hardness), 0.0f) / (float) k_springCoefficient; 
     x = abs(x);
     x *= deltaTime * timeScale;
     x = min(x, 0.99f * cellSize);
@@ -285,7 +282,7 @@ void ResampleDensity(uint3 id : SV_DispatchThreadID)
     Cell upperCell;
     for (int i = 0; i < 50;i++)
     {
-        int index = id.x + gridDimensions.x * i + gridDimensions.y * gridDimensions.x * id.z; // bottom to top
+        int index = id.x + gridDimensions.x * i + gridDimensions.y * gridDimensions.x * id.z; // iterate bottom to top
         cell = cellGridBuffer[index];
         if (cell.isOccupied <= -1) return;
         float massPartial = cell.mass;
@@ -331,9 +328,9 @@ void UpdateSnowColumns(uint3 id : SV_DispatchThreadID)
     ColumnData snowColumnTotals = snowColumnsBuffer[bufferIndex];
     snowColumnTotals.mass = 0.0f;
     Cell cell;
-    for (int i = 0; i < 50; i++)
+    for (int i = 0; i < 50; i++) // iterate bottom to top
     {
-        id.z = i; // iterate bottom to top
+        id.z = i; 
         int cellIndex = indexTexToGrid(id);
         Cell cell = cellGridBuffer[cellIndex];
         float indentAmout = cell.xCompressionAmount;
@@ -356,6 +353,6 @@ void ClearGrid(uint3 id : SV_DispatchThreadID)
 [numthreads(32, 32, 1)]
 void ClearSnowColumns(uint3 id : SV_DispatchThreadID)
 {
-    snowColumnsBuffer[indexTextToArray(id.xy)].mass = 0.0f; // clear mass
-    snowColumnsBuffer[indexTextToArray(id.xy)].mass_temp = 0.0f; // clear temporary mass
+    snowColumnsBuffer[indexTextToArray(id.xy)].mass = 0.0f; 
+    snowColumnsBuffer[indexTextToArray(id.xy)].mass_temp = 0.0f; 
 }
