@@ -4,7 +4,7 @@ Shader "Unlit/Snow"
     {
         _SnowSurfaceColor("Snow Surface Color", Color) = (1,1,1,1)
         _SnowDepthColor("Snow Depth Color", Color) = (0,0,0,1)
-        _GroundHeightMap("Texture", 2D) = "white" {}
+       [HideInInspector] _GroundHeightMap("Texture", 2D) = "white" {}
        [HideInInspector] _SnowMaxHeight("Snow Max Height Const", Range(0,10)) = 10
        [HideInInspector] _TexResolution("Texture Map Resolution", Integer) = 1024
     }
@@ -39,7 +39,7 @@ Shader "Unlit/Snow"
             float4 _GroundHeightMap_ST;
             float4 _SnowDepthColor;
             float4 _SnowSurfaceColor;
-            float _SnowMaxHeight;
+            float _SnowMaxHeight; // reference height for color gradient
             int _TexResolution;
 
             struct ColumnData
@@ -59,6 +59,7 @@ Shader "Unlit/Snow"
                 uint index = (uint) round(v.uv.x *( _texResolution-1)) + round(v.uv.y * (_texResolution-1)) *_texResolution;
                 float snowHeight = snowTotalsBuffer[index].height;
                 float groundHeight = tex2Dlod(_GroundHeightMap, float4(v.uv, 0.0, 0.0)).x;
+                _SnowMaxHeight = snowTotalsBuffer[0].height;
 
                 v.position.y += groundHeight + snowHeight;
                 o.snowIndent = 1 - smoothstep(0.45, 1,saturate(snowHeight / _SnowMaxHeight));

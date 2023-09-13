@@ -2,7 +2,7 @@ Shader "Unlit/Ground"
 {
     Properties
     {
-        _GroundHeightMap("Texture", 2D) = "white" {}
+       [HideInInspector] _GroundHeightMap("Texture", 2D) = "white" {}
     }
     SubShader
     {

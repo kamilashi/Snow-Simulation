@@ -28,7 +28,8 @@ public class SnowCollider : MonoBehaviour
         pressure.y = force_mg / collisionArea;
     }
 
-    private void Awake() // called before the first frame Updae, but even if the object is disabled in the scene
+    // called before the first frame Updae, but even if the object is disabled in the scene
+    private void Awake() 
     {
         UpdateAreaAndPressure();
     }

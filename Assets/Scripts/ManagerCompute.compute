@@ -9,7 +9,6 @@
 #pragma kernel UpdateSnowColumns
 #pragma kernel SetPressure
 #pragma kernel ClearGrid
-#include "../Scripts/Noises.cginc"
 
 #define PI2 6.28318530718f
 #define G 9.81f

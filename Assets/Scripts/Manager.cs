@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Collections;
 using UnityEngine.Rendering;
-
 public class Manager : MonoBehaviour
 {
     // for switching the scene cameras:
@@ -115,15 +114,15 @@ public class Manager : MonoBehaviour
         public Cell(int gridX, int gridY, int gridZ, int cubeIndex, float startDensity, float startTemperature)
         {
             gridIndex = new Vector3Int(gridX, gridY, gridZ);
-            WSposition =  Vector3.zero; //m
-            pressure = Vector3.zero;
-            appliedPressure = Vector3.zero;
+            WSposition =  Vector3.zero; // m
+            pressure = Vector3.zero; // Pa
+            appliedPressure = Vector3.zero; // Pa
             density = startDensity; // kg/m^3
             indentAmount = 0.0f;
             xCompressionAmount = 0.0f;
-            hardness = 0.0f;    // kg/(m*s^2)
+            hardness = 0.0f;    // Pa
             temperature = startTemperature;
-            mass = 0.0f;
+            mass = 0.0f; // kg
             massOver = 0.0f;
             grainSize = 0.2f;
             index = cubeIndex;
@@ -205,7 +204,7 @@ public class Manager : MonoBehaviour
         shader.SetBuffer(kernelClearSnowColumns, "snowColumnsBuffer", snowColumnsBuffer);
 
         snowAddedHeight = snowAddedHeight - snowAddedHeight % cellSize;
-        shader.SetFloat("snowAddedHeight", snowAddedHeight); //important for reconstruction
+        shader.SetFloat("snowAddedHeight", snowAddedHeight); 
         groundMaterial.SetTexture("_GroundHeightMap", groundHeightMapTexture);
         snowMaterial.SetBuffer("snowColumnsBuffer", snowColumnsBuffer);
         snowMaterial.SetTexture("_GroundHeightMap", groundHeightMapTexture);
@@ -246,15 +245,13 @@ public class Manager : MonoBehaviour
         // set numerical parameters that need to be set only once
 
         int[] gridDimensions = new int[] { gridWidth, gridHeight, gridDepth };
-        shader.SetInts("gridDimensions", gridDimensions); //in cell numbers! 
+        shader.SetInts("gridDimensions", gridDimensions); //in cell numbers
         shader.SetFloat("cellSize", cellSize);
         shader.SetFloat("maxSnowDensity", maxSnowDensity);
         shader.SetFloat("groundTemperature", groundTemperature);
         shader.SetFloat("V_cell", cellSize * cellSize * cellSize); // m^3
-
         float[] gridC = new float[] { gridCenter.x, gridCenter.y, gridCenter.z };
         shader.SetFloats("gridCenter", gridC);
-
         gridCellCount = gridWidth * gridHeight * gridDepth;
         shader.SetInt("cellBufferLength", gridCellCount);
 
@@ -279,9 +276,6 @@ public class Manager : MonoBehaviour
     }
     private void InitGrid()
     {
-
-        Debug.Log("grid cell count " + gridCellCount);
-
         cellGridArray = new Cell[gridCellCount];
         int index = 0;
         for (int i =0;i< gridWidth; i++)
@@ -296,21 +290,20 @@ public class Manager : MonoBehaviour
                 }
             }
         }
-
         cellGridBuffer = new ComputeBuffer(gridCellCount, SIZE_CELL);
         cellGridBuffer.SetData(cellGridArray);
 
         kernePopulateGrid = shader.FindKernel("PopulateGrid");
         shader.SetBuffer(kernePopulateGrid, "cellGridBuffer", cellGridBuffer);
         shader.SetBuffer(kernePopulateGrid, "snowColumnsBuffer", snowColumnsBuffer);
+        shader.SetTexture(kernePopulateGrid, "GroundHeightMap", groundHeightMapTexture);
+        shader.SetTexture(kernePopulateGrid, "Debug", debugText);
 
         kerneClearGrid = shader.FindKernel("ClearGrid");
         shader.SetBuffer(kerneClearGrid, "cellGridBuffer", cellGridBuffer);
 
-        shader.SetTexture(kernePopulateGrid, "GroundHeightMap", groundHeightMapTexture);
-        shader.SetTexture(kernePopulateGrid, "Debug", debugText);
+        // init thread group sizes and calculate calls once:
 
-        //init thread group sizes and calculate calls once:
         shader.GetKernelThreadGroupSizes(kernePopulateGrid, out gridThreadGroupSizeX, out gridTthreadGroupSizeY, out gridThreadGroupSizeZ);
         gridThreadCalls.x = Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX);
         gridThreadCalls.y = Mathf.CeilToInt((float)gridHeight / (float)gridTthreadGroupSizeY);
@@ -318,7 +311,6 @@ public class Manager : MonoBehaviour
         shader.Dispatch(kernePopulateGrid, gridThreadCalls.x, gridThreadCalls.y, gridThreadCalls.z);
 
         GridMaterial.SetBuffer("cellGridBuffer", cellGridBuffer);
-
 
         gridArgs = new uint[] { cubeMesh.GetIndexCount(0), (uint)gridCellCount, 0, 0, 0 };
         gridArgsBuffer = new ComputeBuffer(1, gridArgs.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
@@ -357,26 +349,15 @@ public class Manager : MonoBehaviour
         shader.Dispatch(kernelApplyPressures, 5, 5, 5); 
         shader.Dispatch(kernelResampleDensity, 2, 1, 2);
         shader.Dispatch(kernelUpdateSnowColumns, 32, 32, 1);
-
-        snowColumnsBuffer.GetData(snowColumnsArray);
-        snowMaterial.SetFloat("_SnowMaxHeight", snowColumnsArray[0].height);
-
-        if (colliders.activeSelf) { UpdateColliders(); }
-
-        if (showGrid)
-        {
-            Graphics.DrawMeshInstancedProcedural(cubeMesh, 0, GridMaterial, cellBounds, gridCellCount);
-        }
+        if (colliders.activeSelf)  UpdateColliders(); 
+        if (showGrid) Graphics.DrawMeshInstancedProcedural(cubeMesh, 0, GridMaterial, cellBounds, gridCellCount);
         shader.Dispatch(kerneClearGrid, gridThreadCalls.x, gridThreadCalls.y, gridThreadCalls.z);
     }
 
     void OnDestroy()
     {
         cellGridBuffer.Release();
-        if (gridArgsBuffer != null)
-        {
-            gridArgsBuffer.Release();
-        }
+        if (gridArgsBuffer != null) gridArgsBuffer.Release();
         snowColumnsBuffer.Release();
         collisionsBuffer.Release();
     }
@@ -385,7 +366,6 @@ public class Manager : MonoBehaviour
     {
         int colliderCount = colliders.transform.childCount;
         snowColumnsBuffer.GetData(snowColumnsArray);
-
         for (int i = 0; i < colliderCount; i++)
         {
             SnowCollider collider = colliders.transform.GetChild(i).gameObject.GetComponentInChildren<SnowCollider>();
@@ -396,7 +376,6 @@ public class Manager : MonoBehaviour
             collider.Initialize();
             collisionCellsCount += collider.cellCount;
         }
-
         collisionsArray = new CollisionData[collisionCellsCount];
         collisionsBuffer = new ComputeBuffer(collisionCellsCount, SIZE_COLLISIONDATA);
         collisionsBuffer.SetData(collisionsArray);
@@ -408,8 +387,8 @@ public class Manager : MonoBehaviour
     void UpdateColliders()
     {
         int colliderCount = colliders.transform.childCount;
+        snowColumnsBuffer.GetData(snowColumnsArray);
         int head_index = 0;
-
         for (int i = 0; i < colliderCount; i++)
         {
             SnowCollider collider = colliders.transform.GetChild(i).gameObject.GetComponentInChildren<SnowCollider>();
@@ -438,114 +417,106 @@ public class Manager : MonoBehaviour
     void OnGUI()
     {
         float element_width = 100;
+        float element_height = 30;
         float vertical_interval = 35;
+        float horizontal_interval = 10;
         float screep_pos_y_from_top = 35;
         int ui_element_no = 0;
         int screen_width = Screen.width;
 
         // left screen ui
-        GUI.Label(new Rect(10 + element_width + 10, screep_pos_y_from_top + (ui_element_no) * vertical_interval, element_width, 30), "Time scale");
-        GUI.Label(new Rect((screen_width- element_width) / 3, screep_pos_y_from_top + (ui_element_no) * vertical_interval, 3*element_width, 30), "Simulation time: "+ time);
-        timeScale = GUI.HorizontalSlider(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), timeScale, 0.0f, element_width);
-
-        if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no * vertical_interval, element_width, 30), "Start time"))
+        GUI.Label(new Rect(horizontal_interval + element_width + horizontal_interval, screep_pos_y_from_top + (ui_element_no) * vertical_interval, element_width, element_height), "Time scale");
+        GUI.Label(new Rect((screen_width- element_width) / 3, screep_pos_y_from_top + (ui_element_no) * vertical_interval, 3.0f *element_width, element_height), "Simulation time: "+ time);
+        timeScale = GUI.HorizontalSlider(new Rect(horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, element_height), timeScale, 0.0f, element_width);
+        if (GUI.Button(new Rect(horizontal_interval, screep_pos_y_from_top + ui_element_no * vertical_interval, element_width, element_height), "Start time"))
         {
             timeScale = 1.0f;
             Debug.Log("Time scale set to " + timeScale);
         }
-        
-        if (GUI.Button(new Rect(10 + element_width + 10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Stop time"))
+        if (GUI.Button(new Rect(horizontal_interval + element_width + horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, element_height), "Stop time"))
         {
             timeScale = 0.0f;
             Debug.Log("Time scale set to " + timeScale);
         }
-
-        GUI.Label(new Rect(10 + element_width+10, screep_pos_y_from_top + ui_element_no * vertical_interval, element_width, 60), "Add Snow Height: " + snowAddedHeight + " m.");
-        snowAddedHeight = GUI.HorizontalSlider(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), snowAddedHeight, 0.0f, 8.0f);
+        GUI.Label(new Rect(horizontal_interval + element_width + horizontal_interval, screep_pos_y_from_top + ui_element_no * vertical_interval, element_width, element_height * 2.0f), "Added Snow Height: " + snowAddedHeight + " m.");
+        snowAddedHeight = GUI.HorizontalSlider(new Rect(horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, element_height), snowAddedHeight, 0.0f, 8.0f);
         snowAddedHeight = snowAddedHeight - snowAddedHeight % cellSize;
-
-        if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Add Snow"))
+        if (GUI.Button(new Rect(horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, element_height), "Add Snow"))
         {
             shader.SetFloat("snowAddedHeight", snowAddedHeight); 
             shader.SetFloat("airTemperature", airTemperature); 
             shader.Dispatch(kernelAddHeight, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX), Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY), 1);
             Debug.Log("Adding " + snowAddedHeight + " meters of snow");
         }
-
-        GUI.Label(new Rect(10 + element_width + 10, screep_pos_y_from_top + ui_element_no * vertical_interval, element_width, 60), "Air temperature: " + airTemperature + " deg. C");
-        airTemperature = GUI.HorizontalSlider(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), airTemperature, minSnowTemperature, 0.0f);
+        GUI.Label(new Rect(horizontal_interval + element_width + horizontal_interval, screep_pos_y_from_top + ui_element_no * vertical_interval, element_width, element_height * 2.0f), "Air temperature: " + airTemperature + " deg. C");
+        airTemperature = GUI.HorizontalSlider(new Rect(horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, element_height), airTemperature, minSnowTemperature, 0.0f);
         airTemperature = Mathf.Round(airTemperature);
-
-        if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Reset"))
+        if (GUI.Button(new Rect(horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, element_height), "Reset"))
         {
             Reset();
         }
-
-        if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Toggle Colliders"))
+        if (GUI.Button(new Rect(horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, element_height), "Toggle Colliders"))
         {
             ToggleColliders();
         }
+        if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Get Height"))
+        {
+            snowColumnsBuffer.GetData(snowColumnsArray);
+            int index = 512 + texResolution * 512;
+            float height = snowColumnsArray[index].height;
+            Debug.Log("Height of center column 512x512: " + height);
+        }
+        if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Get Mass"))
+        {
+            snowColumnsBuffer.GetData(snowColumnsArray);
+            int index = 512 + texResolution * 512;
+            float mass = snowColumnsArray[index].mass;
+            Debug.Log("Mass of center column 512x512: " + mass);
+        }
         // right screen ui
         ui_element_no = 0;
-
-        if (GUI.Button(new Rect(screen_width - element_width - 10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Switch Camera"))
+        if (GUI.Button(new Rect(screen_width - element_width - horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Switch Camera"))
         {
             int cameraCount = cameras.transform.childCount;
             activeCameraNo++;
             activeCameraNo = activeCameraNo % cameraCount;
-
             for (int i = 0; i < cameraCount; i++)
             {
                 GameObject camera = cameras.transform.GetChild(i).gameObject;
                 camera.SetActive(false);
-                if (i == activeCameraNo)
-                {
-                    camera.SetActive(true);
-                }
+                if (i == activeCameraNo)  camera.SetActive(true);
             }
-                
         }
-
-        if (GUI.Button(new Rect(screen_width - element_width - 10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Paint White"))
+        if (GUI.Button(new Rect(screen_width - element_width - horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, element_height), "Paint White"))
         {
             float toggle = GridMaterial.GetFloat("_Paint_White");
             GridMaterial.SetFloat("_Paint_White", toggle == 0.0f ? 1.0f : 0.0f);
         }
-
-        GUI.Label(new Rect(screen_width - element_width - 10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Toggle:");
-
-        if (GUI.Button(new Rect(screen_width - element_width - 10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Grid"))
+        GUI.Label(new Rect(screen_width - element_width - horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, element_height), "Toggle:");
+        if (GUI.Button(new Rect(screen_width - element_width - horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, element_height), "Grid"))
         {
             showGrid = !showGrid;
         }
-        
-        if (GUI.Button(new Rect(screen_width - element_width - 10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Density"))
+        if (GUI.Button(new Rect(screen_width - element_width - horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, element_height), "Density"))
         {
             float toggle = GridMaterial.GetFloat("_Show_Density");
             GridMaterial.SetFloat("_Show_Density", toggle == 0.0f ? 1.0f : 0.0f);
         }
-
-        if (GUI.Button(new Rect(screen_width - element_width - 10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Temperature"))
+        if (GUI.Button(new Rect(screen_width - element_width - horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, element_height), "Temperature"))
         {
             float toggle = GridMaterial.GetFloat("_Show_Temperature");
             GridMaterial.SetFloat("_Show_Temperature", toggle == 0.0f ? 1.0f : 0.0f);
         }
-
-        if (GUI.Button(new Rect(screen_width - element_width - 10, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, 30), "Pressure"))
+        if (GUI.Button(new Rect(screen_width - element_width - horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, element_height), "Pressure"))
         {
             float toggle = GridMaterial.GetFloat("_Show_Pressure");
             GridMaterial.SetFloat("_Show_Pressure", toggle == 0.0f ? 1.0f : 0.0f);
         }
-
     }
     private void ToggleColliders()
     {
-        if (colliders.activeSelf)
-        {
-            colliders.SetActive(false);
-        }
+        if (colliders.activeSelf) colliders.SetActive(false);
         else { colliders.SetActive(true); }
-
     }
     private void Reset()
     {
@@ -559,5 +530,4 @@ public class Manager : MonoBehaviour
         InitializeColliders();
         UpdateColliders();
     }
-
 }
