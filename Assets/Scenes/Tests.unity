@@ -371,21 +371,22 @@ MonoBehaviour:
   colliders: {fileID: 1588734663}
   shader: {fileID: 7200000, guid: f4bc48209859be14ba5ee14a11e97fad, type: 3}
   texResolution: 1024
+  showGrid: 1
   gridCenter: {x: 0, y: 0, z: 0}
   cellSize: 0.2
   timeScale: 0
   snowAddedHeight: 0
   freshSnowDensity: 20
   maxSnowDensity: 100
-  kN: 3.56
+  k_d_p: 3.56
   minSnowTemperature: -20
   airTemperature: -3
   groundTemperature: -20
-  showGrid: 1
   groundMaterial: {fileID: 2100000, guid: dc9a592f2605d0c4588833d419cc81df, type: 2}
   snowMaterial: {fileID: 2100000, guid: 1a7c1f1c2f1555e409f74a848abbac77, type: 2}
   debugMaterial: {fileID: 2100000, guid: bf39f3fa15e6ea34fae8093b5e8f202c, type: 2}
-  gridMaterial: {fileID: 2100000, guid: 1ce10dc0a0dce6748bfd7ed8a6ff31fd, type: 2}
+  particleMaterial: {fileID: 2100000, guid: c72ea79b0ef478e4dad2dfd2534e1646, type: 2}
+  GridMaterial: {fileID: 2100000, guid: 1ce10dc0a0dce6748bfd7ed8a6ff31fd, type: 2}
 --- !u!1 &446624559
 GameObject:
   m_ObjectHideFlags: 0

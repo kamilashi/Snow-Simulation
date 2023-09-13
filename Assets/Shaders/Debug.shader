@@ -35,6 +35,8 @@ Shader "Unlit/Debug"
             v2f vert (appdata v)
             {
                 v2f o;
+                //float height = tex2Dlod(_HeightMap, float4(v.uv, 0.0, 0.0)).x;
+                //v.position.y += height;
                 o.position = UnityObjectToClipPos(v.position);
                 o.uv = v.uv;
                 return o;
@@ -44,6 +46,7 @@ Shader "Unlit/Debug"
             {
                 // sample the texture
                 fixed4 col = tex2D(_DebugMap, i.uv);
+                
                 return col;
             }
             ENDCG
