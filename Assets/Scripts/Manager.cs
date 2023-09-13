@@ -40,11 +40,13 @@ public class Manager : MonoBehaviour
     [Range(-20.0f, -1.0f)]
     public float airTemperature = -3.0f; //kg/m^3
     public float groundTemperature = -30.0f; //kg/m^3
-    private float time = 0.0f;
+    private float elapsedSimulationTime = 0.0f;
 
     // UI related
-    private float CentralSnowColumnHeight = 0;
-    private float CentralSnowColumnMass = 0;
+    private float centralSnowColumnHeight = 0;
+    private float ñentralSnowColumnMass = 0; 
+    private float elapsedTime = 0.0f;
+    private int frameCount = 0;
 
     // rendering related:
     Renderer rend;
@@ -233,7 +235,7 @@ public class Manager : MonoBehaviour
         gridDepth = 50;
         snowColumnsCount = texResolution * texResolution;
         timeScale = 0.0f;
-        time = 0.0f;
+        elapsedSimulationTime = 0.0f;
     }
     private void InitializeTweakParameters()
     {
@@ -264,7 +266,8 @@ public class Manager : MonoBehaviour
 
         shader.SetFloat("deltaTime", Time.deltaTime);
         shader.SetFloat("timeScale", timeScale);
-        shader.SetFloat("time", time += Time.deltaTime * timeScale);
+        shader.SetFloat("time", elapsedSimulationTime += Time.deltaTime * timeScale);
+        elapsedTime += Time.deltaTime;
 
         snowAddedHeight = snowAddedHeight - snowAddedHeight % cellSize;
         shader.SetFloat("snowAddedHeight", snowAddedHeight);
@@ -390,6 +393,13 @@ public class Manager : MonoBehaviour
         }
     }
 
+   private float GetFPS()
+    {
+        frameCount++;
+        float fps = frameCount / elapsedTime;
+        return fps;
+    } 
+
     void UpdateColliders()
     {
         int colliderCount = colliders.transform.childCount;
@@ -431,7 +441,7 @@ public class Manager : MonoBehaviour
 
         // left screen ui
         GUI.Label(new Rect(horizontal_interval + element_width + horizontal_interval, screep_pos_y_from_top + (ui_element_no) * vertical_interval, element_width, element_height), "Time scale");
-        GUI.Label(new Rect((screen_width - element_width) / 3, screep_pos_y_from_top + (ui_element_no) * vertical_interval, 3.0f * element_width, element_height), "Simulation time: " + time);
+        GUI.Label(new Rect((screen_width - element_width) / 3, screep_pos_y_from_top + (ui_element_no) * vertical_interval, 3.0f * element_width, element_height), "Simulation time: " + elapsedSimulationTime);
         timeScale = GUI.HorizontalSlider(new Rect(horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, element_height), timeScale, 0.0f, element_width);
         if (GUI.Button(new Rect(horizontal_interval, screep_pos_y_from_top + ui_element_no * vertical_interval, element_width, element_height), "Start time"))
         {
@@ -461,20 +471,20 @@ public class Manager : MonoBehaviour
         {
             ToggleColliders();
         }
-        if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no * vertical_interval, element_width, 30), "Get Height"))
+        if (GUI.Button(new Rect(horizontal_interval, screep_pos_y_from_top + ui_element_no * vertical_interval, element_width, element_height), "Get Height"))
         {
             int index = 512 + texResolution * 512;
-            CentralSnowColumnHeight = snowColumnsArray[index].height;
+            centralSnowColumnHeight = snowColumnsArray[index].height;
         }
-        GUI.Label(new Rect(horizontal_interval + element_width + horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 2 *element_width, element_height * 2.0f), "Last central column \n height update: " + CentralSnowColumnHeight + " m");
+        GUI.Label(new Rect(horizontal_interval + element_width + horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 2 *element_width, element_height * 2.0f), "Last central column \n height update: " + centralSnowColumnHeight + " m");
 
-        if (GUI.Button(new Rect(10, screep_pos_y_from_top + ui_element_no * vertical_interval, element_width, 30), "Get Mass"))
+        if (GUI.Button(new Rect(horizontal_interval, screep_pos_y_from_top + ui_element_no * vertical_interval, element_width, element_height), "Get Mass"))
         {
             int index = 512 + texResolution * 512;
-            CentralSnowColumnMass = snowColumnsArray[index].mass;
+            ñentralSnowColumnMass = snowColumnsArray[index].mass;
         }
-        GUI.Label(new Rect(horizontal_interval + element_width + horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 2 * element_width, element_height * 2.0f), "Last central column \n mass update: " + CentralSnowColumnMass + " m");
-        GUI.Label(new Rect(horizontal_interval + element_width + horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 2 * element_width, element_height * 2.0f), "Last central column \n mass update: " + CentralSnowColumnMass + " m");
+        GUI.Label(new Rect(horizontal_interval + element_width + horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 2 * element_width, element_height * 2.0f), "Last central column \n mass update: " + ñentralSnowColumnMass + " m");
+        GUI.Label(new Rect(horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 4 * element_width, element_height ), "Current FPS: " + GetFPS());
 
         // right screen ui
         ui_element_no = 0;
