@@ -132,6 +132,7 @@ public class Manager : MonoBehaviour
             isOccupied = 0;
         }
     };
+
     public struct CollisionData
     {
         public Vector3 position;
@@ -153,7 +154,6 @@ public class Manager : MonoBehaviour
             return CjLib.PrimitiveMeshFactory.BoxFlatShaded();
         }
     }
-
 
     // Start is called before the first frame update
     void Start()
@@ -239,8 +239,6 @@ public class Manager : MonoBehaviour
     }
     private void InitializeTweakParameters()
     {
-        // set numerical parameters that need to be set only once
-
         int[] gridDimensions = new int[] { gridWidth, gridHeight, gridDepth };
         shader.SetInts("gridDimensions", gridDimensions); //in cell numbers
         shader.SetFloat("cellSize", cellSize);
@@ -258,8 +256,6 @@ public class Manager : MonoBehaviour
     }
     private void UpdateTweakParameters()
     {
-        // set numerical parameters that need to be updated every frame
-
         shader.SetFloat("freshSnowDensity", freshSnowDensity);
         shader.SetFloat("airTemperature", airTemperature);
         shader.SetFloat("kN", kN);
@@ -299,8 +295,6 @@ public class Manager : MonoBehaviour
         kerneClearGrid = shader.FindKernel("ClearGrid");
         shader.SetBuffer(kerneClearGrid, "cellGridBuffer", cellGridBuffer);
 
-        // init thread group sizes and calculate calls once:
-
         shader.GetKernelThreadGroupSizes(kernePopulateGrid, out gridThreadGroupSizeX, out gridTthreadGroupSizeY, out gridThreadGroupSizeZ);
         gridThreadCalls.x = Mathf.CeilToInt((float)gridWidth / (float)gridThreadGroupSizeX);
         gridThreadCalls.y = Mathf.CeilToInt((float)gridHeight / (float)gridTthreadGroupSizeY);
@@ -312,7 +306,7 @@ public class Manager : MonoBehaviour
         gridArgs = new uint[] { cubeMesh.GetIndexCount(0), (uint)gridCellCount, 0, 0, 0 };
         gridArgsBuffer = new ComputeBuffer(1, gridArgs.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
         gridArgsBuffer.SetData(gridArgs);
-        cellBounds = new Bounds(Vector3.zero, new Vector3(30, 30, 30)); //place holder
+        cellBounds = new Bounds(Vector3.zero, new Vector3(30, 30, 30)); 
 
         kernelComputePressures = shader.FindKernel("ComputeForces");
         shader.SetBuffer(kernelComputePressures, "cellGridBuffer", cellGridBuffer);
@@ -387,10 +381,7 @@ public class Manager : MonoBehaviour
         {
             yield return null;
         }
-        if (!request.hasError)
-        {
-            snowColumnsArray = request.GetData<ColumnData>().ToArray();
-        }
+        if (!request.hasError) snowColumnsArray = request.GetData<ColumnData>().ToArray();
     }
 
    private float GetFPS()
@@ -451,7 +442,7 @@ public class Manager : MonoBehaviour
         {
             timeScale = 0.0f;
         }
-        GUI.Label(new Rect(horizontal_interval + element_width + horizontal_interval, screep_pos_y_from_top + ui_element_no * vertical_interval, element_width, element_height * 2.0f), "Added Snow Height: " + snowAddedHeight + " m.");
+        GUI.Label(new Rect(horizontal_interval + element_width + horizontal_interval, screep_pos_y_from_top + ui_element_no * vertical_interval, element_width, element_height * 2.0f), "Snow height to add: " + snowAddedHeight + " m.");
         snowAddedHeight = GUI.HorizontalSlider(new Rect(horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, element_height), snowAddedHeight, 0.0f, 8.0f);
         snowAddedHeight = snowAddedHeight - snowAddedHeight % cellSize;
         if (GUI.Button(new Rect(horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, element_height), "Add Snow"))
@@ -460,17 +451,21 @@ public class Manager : MonoBehaviour
             shader.SetFloat("airTemperature", airTemperature);
             shader.Dispatch(kernelAddHeight, Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeX), Mathf.CeilToInt((float)texResolution / (float)heightThreadGroupSizeY), 1);
         }
+
         GUI.Label(new Rect(horizontal_interval + element_width + horizontal_interval, screep_pos_y_from_top + ui_element_no * vertical_interval, element_width, element_height * 2.0f), "Air temperature: " + airTemperature + " deg. C");
         airTemperature = GUI.HorizontalSlider(new Rect(horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, element_height), airTemperature, minSnowTemperature, 0.0f);
         airTemperature = Mathf.Round(airTemperature);
+
         if (GUI.Button(new Rect(horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, element_height), "Reset"))
         {
             Reset();
         }
+
         if (GUI.Button(new Rect(horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, element_height), "Toggle Colliders"))
         {
             ToggleColliders();
         }
+
         if (GUI.Button(new Rect(horizontal_interval, screep_pos_y_from_top + ui_element_no * vertical_interval, element_width, element_height), "Get Height"))
         {
             int index = 512 + texResolution * 512;
@@ -484,6 +479,7 @@ public class Manager : MonoBehaviour
             ñentralSnowColumnMass = snowColumnsArray[index].mass;
         }
         GUI.Label(new Rect(horizontal_interval + element_width + horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 2 * element_width, element_height * 2.0f), "Last central column \n mass update: " + ñentralSnowColumnMass + " m");
+        
         GUI.Label(new Rect(horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, 4 * element_width, element_height ), "Current FPS: " + GetFPS());
 
         // right screen ui
@@ -505,21 +501,25 @@ public class Manager : MonoBehaviour
             float toggle = GridMaterial.GetFloat("_Paint_White");
             GridMaterial.SetFloat("_Paint_White", toggle == 0.0f ? 1.0f : 0.0f);
         }
+
         GUI.Label(new Rect(screen_width - element_width - horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, element_height), "Toggle:");
         if (GUI.Button(new Rect(screen_width - element_width - horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, element_height), "Grid"))
         {
             showGrid = !showGrid;
         }
+
         if (GUI.Button(new Rect(screen_width - element_width - horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, element_height), "Density"))
         {
             float toggle = GridMaterial.GetFloat("_Show_Density");
             GridMaterial.SetFloat("_Show_Density", toggle == 0.0f ? 1.0f : 0.0f);
         }
+
         if (GUI.Button(new Rect(screen_width - element_width - horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, element_height), "Temperature"))
         {
             float toggle = GridMaterial.GetFloat("_Show_Temperature");
             GridMaterial.SetFloat("_Show_Temperature", toggle == 0.0f ? 1.0f : 0.0f);
         }
+
         if (GUI.Button(new Rect(screen_width - element_width - horizontal_interval, screep_pos_y_from_top + ui_element_no++ * vertical_interval, element_width, element_height), "Pressure"))
         {
             float toggle = GridMaterial.GetFloat("_Show_Pressure");

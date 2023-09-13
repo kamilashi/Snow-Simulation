@@ -85,7 +85,7 @@ Material:
     - _Parallax: 0.02
     - _SmoothnessTextureChannel: 0
     - _SnowFactorMax: 5
-    - _SnowMaxHeight: 4.470043
+    - _SnowMaxHeight: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
     - _TempScale: 2.1
