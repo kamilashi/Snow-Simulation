@@ -12,3 +12,5 @@ The Snow Simulation.exe app can be launched from the Snow-Simulation/Build folde
 3. Click on the "Add snow" button
 4. Click on the "Start simulation" button
 5. The reset button can bring the setup back to the chosen snow height and snow temperature slider settings.
+
+The Python preparation code is available at https://github.com/kamilashi/python_graphs_snow_prep
